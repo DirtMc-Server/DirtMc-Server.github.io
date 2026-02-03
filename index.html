@@ -3,475 +3,383 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>DirtMC — PVP Server</title>
+<title>DirtMC — Copy IP</title>
 
-<!-- Modern + pixel-ish combo -->
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Inter:wght@400;600&display=swap" rel="stylesheet">
+<!-- Use a clean display font for legibility on mobile; replace if you want pixel font -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
 
 <style>
 :root{
-  --bg-1:#07140b;
-  --bg-2:#02110a;
-  --accent-1:#16a34a; /* green */
-  --accent-2:#6ee7b7; /* light green */
-  --accent-blue1:#0b63d6;
-  --accent-blue2:#7ab8ff;
-  --accent-pink1:#b20059;
-  --accent-pink2:#ff6fb5;
+  --accent-1: #16a34a;
+  --accent-2: #6ee7b7;
+  --bg-dark: #06120b;
   --glass: rgba(255,255,255,0.04);
-  --text:#e8fff2;
-  --card: rgba(5,10,6,0.6);
+  --text: #e9fff0;
+  /* Change background image path here if you name file differently */
+  --bg-img: url('background.png'); /* <- put your image file (png/jpg) in same folder */
 }
-
-/* reset */
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg-1),var(--bg-2));color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;}
+html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;background:var(--bg-dark);color:var(--text);-webkit-font-smoothing:antialiased;}
 a{color:inherit;text-decoration:none}
 
-/* canvas bg fills whole screen */
-#bgCanvas{position:fixed;inset:0;z-index:0;display:block}
-
-/* layout */
-.app{
-  position:relative; z-index:5;
-  min-height:100vh;
-  display:flex; align-items:center; justify-content:center;
-  padding:24px;
+/* background image layer (you put your image file next to index.html) */
+.bg-image{
+  position:fixed; inset:0; z-index:0; background-color:#000;
+  background-image: var(--bg-img);
+  background-size: cover;
+  background-position: center center;
+  filter: brightness(.42);
 }
 
-/* MAIN CARD */
-.card{
-  width:min(1024px,96%);
-  background: linear-gradient(180deg, rgba(0,0,0,0.45), rgba(0,0,0,0.28));
+/* animated star dots canvas sits above bg-image */
+#starCanvas{ position:fixed; inset:0; z-index:1; pointer-events:none; }
+
+/* main UI centered */
+.container{ position:relative; z-index:5; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+
+/* card (center big square) */
+.card-wrap{
+  width:min(920px,96%); max-width:980px;
+  display:flex; flex-direction:column; align-items:center; gap:18px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* Title above square */
+.site-title{
+  font-weight:900; font-size:28px; letter-spacing:1px;
+  color:var(--accent-2);
+  text-shadow: 0 8px 20px rgba(6,255,140,0.06);
+  transform: translateY(-6px);
+}
+
+/* big center square */
+.centerBox{
+  width:100%; max-width:760px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.45), rgba(255,255,255,0.02));
   border-radius:14px;
-  padding:22px;
-  display:flex; gap:22px; align-items:center;
-  box-shadow: 0 30px 80px rgba(0,0,0,0.7);
-  border:1px solid rgba(255,255,255,0.03);
+  padding:28px;
+  display:flex; flex-direction:column; align-items:center; gap:18px;
+  box-shadow: 0 30px 90px rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,255,255,0.04);
 }
 
-/* LEFT: logo + title */
-.left{
-  display:flex; gap:18px; align-items:center;
-  min-width:380px;
-}
-.logoCube{
-  width:120px; height:120px; border-radius:6px;
-  background: linear-gradient(180deg,#387a2e,var(--accent-1));
-  border:6px solid #183d17;
-  box-shadow: 0 18px 0 rgba(0,0,0,0.5), 0 0 30px rgba(22,163,74,0.06);
-  display:flex; align-items:center; justify-content:center;
-  position:relative;
-  transform: translateZ(0);
-}
-.logoCube .bigD{
-  font-family:Orbitron, sans-serif;
-  font-weight:900;
-  font-size:64px;
-  color:#04230a;
-  text-shadow: 0 6px 0 rgba(0,0,0,0.6);
-}
-/* title text 3D-ish */
-.titleBlock{
-  display:flex; flex-direction:column; gap:8px;
-}
-.title{
-  font-family:Orbitron, sans-serif;
-  font-weight:900;
-  font-size:42px;
-  letter-spacing:1px;
-  background: linear-gradient(90deg,var(--accent-2),var(--accent-1));
-  -webkit-background-clip:text; -webkit-text-fill-color:transparent;
-  text-shadow: 0 8px 0 rgba(0,0,0,0.6), 0 0 28px rgba(22,163,74,0.08);
-  transform: translateZ(0);
-}
-.subtitle{
-  color:rgba(232,255,242,0.85);
-  font-size:14px;
-  max-width:420px;
-  line-height:1.35;
-  opacity:0.95;
-}
-
-/* RIGHT: IP and actions */
-.right{
-  margin-left:auto; display:flex; flex-direction:column; gap:16px; align-items:center; min-width:300px;
-}
+/* the big IP text area */
 .ipBox{
-  background: linear-gradient(90deg, rgba(0,0,0,0.35), rgba(255,255,255,0.02));
-  padding:16px 18px;
-  border-radius:12px;
-  border:1px solid rgba(255,255,255,0.04);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.6);
-  text-align:center;
-  width:100%;
-}
-.ipRow{ display:flex; gap:12px; align-items:center; justify-content:center; flex-wrap:wrap; }
-.ipVal{
-  font-family:Orbitron, sans-serif;
-  font-size:22px;
-  font-weight:800;
-  padding:8px 12px;
-  background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(0,0,0,0.05));
-  border-radius:8px;
-  min-width:190px;
-  text-align:center;
-  box-shadow: 0 8px 30px rgba(0,0,0,0.5);
-}
-
-/* Copy button */
-.copyBtn{
-  padding:10px 14px;
-  border-radius:10px;
-  border:0;
+  width:100%; display:flex; align-items:center; justify-content:center; gap:14px;
+  padding:22px; border-radius:10px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
+  border: 2px solid rgba(255,255,255,0.03);
   cursor:pointer;
-  font-weight:800;
-  color:#031205;
-  background: linear-gradient(90deg,var(--accent-1),var(--accent-2));
-  box-shadow:0 10px 40px rgba(22,163,74,0.08);
-  transition: transform .12s ease;
-}
-.copyBtn:active{ transform: translateY(2px); }
-
-/* Social buttons row */
-.socialRow{ display:flex; gap:10px; margin-top:4px; }
-.social{
-  padding:10px 14px; border-radius:10px; font-weight:700; color:white; border:0; cursor:pointer;
   transition: transform .12s ease, box-shadow .12s ease;
 }
-.social:active{ transform:translateY(2px) }
-.social.discord{ background: linear-gradient(90deg,var(--accent-blue1),var(--accent-blue2)); box-shadow:0 12px 40px rgba(11,99,214,0.08) }
-.social.tiktok{ background: linear-gradient(90deg,var(--accent-pink1),var(--accent-pink2)); box-shadow:0 12px 40px rgba(255,111,181,0.08) }
-
-/* sword/pick CSS  - displayed as stylized small SVG inline via CSS positioning for mobile compat */
-.swordIcon{
-  width:52px;height:52px; display:inline-block; transform:rotate(-18deg); filter:drop-shadow(0 10px 18px rgba(0,0,0,0.6));
+.ipBox:active{ transform: translateY(2px); }
+/* show pointer on mobile as well */
+.ipText{
+  font-family: Inter, system-ui, sans-serif;
+  font-weight:900;
+  font-size:26px;
+  letter-spacing:0.8px;
+  color: var(--text);
+  text-align:center;
+  user-select: none;
 }
 
-/* footer small */
-.footerSmall{ font-size:12px; color:rgba(232,255,242,0.7); margin-top:6px }
-
-/* responsiveness */
-@media (max-width:900px){
-  .card{ flex-direction:column; align-items:stretch; padding:18px; gap:16px }
-  .left{ min-width:auto; }
-  .right{ align-items:stretch; min-width:auto }
-  .logoCube{ width:96px;height:96px }
-  .logoCube .bigD{ font-size:48px }
-  .title{ font-size:32px }
-  .ipVal{ font-size:20px }
+/* success label */
+.copyLabel{
+  font-size:13px; color:var(--accent-2); font-weight:800; opacity:0; transform:translateY(-6px); transition: all .28s ease;
+  pointer-events:none;
 }
 
-/* Mobile fine-tuning */
-@media (max-width:420px){
-  .title{ font-size:26px }
-  .logoCube{ width:80px;height:80px }
-  .logoCube .bigD{ font-size:40px }
-  .copyBtn{ font-size:14px; padding:8px 10px }
-  .ipVal{ font-size:18px; min-width:150px; padding:6px 8px }
+/* confetti shapes container (absolute overlay inside centerBox) */
+.confetti-layer{ position:relative; width:100%; height:0; pointer-events:none; }
+
+/* buttons row */
+.btnRow{ display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:2px; }
+.btn{
+  padding:10px 16px; border-radius:10px; cursor:pointer; border:0; font-weight:800;
+  color:#021205; background: linear-gradient(90deg,var(--accent-1),var(--accent-2));
+  box-shadow: 0 12px 40px rgba(22,163,74,0.08);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.btn:active{ transform:translateY(2px); }
+.btnDiscord{ background: linear-gradient(90deg,#0b63d6,#7ab8ff); color:white; box-shadow:0 12px 40px rgba(122,184,255,0.08) }
+.btnTiktok{ background: linear-gradient(90deg,#b20059,#ff6fb5); color:white; box-shadow:0 12px 40px rgba(255,111,181,0.08) }
+
+/* little feedback star/triangle/circle styles (created by JS as inline elements) */
+.fx-shape{
+  position:absolute; left:50%; top:50%;
+  width:22px; height:22px; transform:translate(-50%,-50%) scale(0.2);
+  opacity:0; pointer-events:none; z-index:9;
+  filter: drop-shadow(0 8px 12px rgba(0,0,0,0.45));
+}
+
+/* circle */
+.fx-circle{ border-radius:50%; background: radial-gradient(circle, #fff 0%, rgba(255,255,255,0.9) 15%, rgba(54,255,176,0.9) 80%); }
+/* triangle via CSS border */
+.fx-triangle{
+  width:0; height:0; border-left:12px solid transparent; border-right:12px solid transparent;
+  border-bottom:20px solid rgba(255,255,255,0.95);
+  background:transparent;
+  transform-origin:center center;
+}
+/* star (SVG inserted) */
+.fx-star svg{ width:24px; height:24px; }
+
+/* small instruction under ip */
+.ipHint{ font-size:12px; color:rgba(233,255,240,0.7); margin-top:4px; }
+
+/* responsive tweaks */
+@media(max-width:640px){
+  .ipText{ font-size:20px }
+  .site-title{ font-size:20px }
+  .centerBox{ padding:18px }
+  .btn{ padding:9px 12px; font-size:14px }
 }
 </style>
 </head>
 <body>
 
-<canvas id="bgCanvas" aria-hidden="true"></canvas>
+<!-- background image layer: put your image file in same folder and name it background.png (or change --bg-img variable at top) -->
+<div class="bg-image" aria-hidden="true"></div>
 
-<div class="app">
-  <div class="card" role="region" aria-label="DirtMC PVP server landing">
-    <div class="left">
-      <div class="logoCube" aria-hidden="true">
-        <div class="bigD">D</div>
+<!-- star dots canvas -->
+<canvas id="starCanvas" aria-hidden="true"></canvas>
+
+<div class="container" role="main">
+  <div class="card-wrap" role="article" aria-label="DirtMC main">
+    <div class="site-title" id="siteTitle">DirtMc</div>
+
+    <div class="centerBox" role="region" aria-label="IP box region" >
+      <div class="confetti-layer" id="confettiLayer" aria-hidden="true"></div>
+
+      <!-- clickable IP box -->
+      <div class="ipBox" id="ipBox" role="button" aria-pressed="false" aria-label="Copy server ip">
+        <div class="ipText" id="ipText">DirtMc.pro:21411</div>
       </div>
-      <div class="titleBlock">
-        <div class="title">DirtMC</div>
-        <div class="subtitle">High-speed PvP | Ranked matches | Custom kits — join, fight, win.</div>
-        <div class="footerSmall">Mobile & desktop friendly • Optimized PvP experience</div>
-      </div>
-    </div>
 
-    <div class="right" role="group" aria-label="server actions">
-      <div class="ipBox" aria-hidden="false">
-        <div class="ipRow">
-          <div class="ipVal">dirtmc.pro</div>
-          <div class="ipVal">21411</div>
-        </div>
-        <div style="margin-top:12px; display:flex; gap:10px; justify-content:center;">
-          <button class="copyBtn" id="copyIpBtn" aria-label="Copy IP">Copy IP</button>
-        </div>
+      <!-- temporary copy label -->
+      <div class="copyLabel" id="copyLabel" aria-live="polite">Copy done</div>
 
-        <div class="socialRow" style="margin-top:12px;">
-          <a class="social discord" href="https://discord.gg/dirtmc" target="_blank" rel="noopener">Discord</a>
-          <a class="social tiktok" href="https://vt.tiktok.com/ZSaGx7Yuo/" target="_blank" rel="noopener">TikTok</a>
-        </div>
+      <div class="ipHint">Tap the box to copy the IP</div>
+
+      <!-- buttons -->
+      <div class="btnRow" style="margin-top:12px;">
+        <button class="btn btnDiscord" id="discordBtn" aria-label="Open Discord">Discord</button>
+        <button class="btn btnTiktok" id="tiktokBtn" aria-label="Open TikTok">TikTok</button>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-/* ---------- Canvas background: stylized Minecraft-ish blocks, floating swords and modern particles ---------- */
-const canvas = document.getElementById('bgCanvas');
-const ctx = canvas.getContext('2d');
+/* =========================
+   1) Where to put your background image
+   =========================
+   - Place the image file in the same folder as this index.html
+   - Name it `background.png` (or `background.jpg`). Then the CSS variable at top (--bg-img) will point to it.
+   - PNG is fine (supports transparency). JPG/WEBP also fine. Use large resolution (e.g. 1920x1080) for best look.
+   - If you named it different, edit :root --bg-img value in the <style> (top) to your filename.
+*/
+
+/* =========================
+   2) Star dots canvas (glowing floating dots)
+   ========================= */
+const starCanvas = document.getElementById('starCanvas');
+const sctx = starCanvas.getContext('2d');
 let DPR = Math.max(1, window.devicePixelRatio || 1);
 
-function resize(){
+function resizeStarCanvas(){
   DPR = Math.max(1, window.devicePixelRatio || 1);
-  canvas.width = Math.floor(window.innerWidth * DPR);
-  canvas.height = Math.floor(window.innerHeight * DPR);
-  canvas.style.width = window.innerWidth + 'px';
-  canvas.style.height = window.innerHeight + 'px';
-  ctx.setTransform(DPR,0,0,DPR,0,0);
+  starCanvas.width = Math.floor(window.innerWidth * DPR);
+  starCanvas.height = Math.floor(window.innerHeight * DPR);
+  starCanvas.style.width = window.innerWidth + 'px';
+  starCanvas.style.height = window.innerHeight + 'px';
+  sctx.setTransform(DPR,0,0,DPR,0,0);
 }
-window.addEventListener('resize', resize);
-resize();
+window.addEventListener('resize', resizeStarCanvas);
+resizeStarCanvas();
 
-/* helper */
-function rand(min,max){ return Math.random()*(max-min)+min }
-
-/* stars/particles */
 const stars = [];
 function initStars(){
-  stars.length=0;
-  const count = Math.max(80, Math.floor((window.innerWidth*window.innerHeight)/20000));
+  stars.length = 0;
+  const count = Math.max(50, Math.floor((window.innerWidth * window.innerHeight) / 45000));
   for(let i=0;i<count;i++){
-    stars.push({x:Math.random()*window.innerWidth, y:Math.random()*window.innerHeight, r:Math.random()*1.6 + 0.3, a: 0.2 + Math.random()*0.9});
+    stars.push({
+      x: Math.random()*window.innerWidth,
+      y: Math.random()*window.innerHeight,
+      size: Math.random()*2 + 0.6,
+      phase: Math.random()*Math.PI*2,
+      speed: 0.2 + Math.random()*0.6,
+      vy: (Math.random()*0.6 - 0.3)
+    });
   }
 }
 initStars();
 window.addEventListener('resize', initStars);
 
-/* floating swords (stylized) */
-const swords = [];
-function initSwords(){
-  swords.length=0;
-  const n = Math.max(3, Math.floor(window.innerWidth/360));
-  for(let i=0;i<n;i++){
-    swords.push({
-      x: Math.random()*window.innerWidth,
-      y: Math.random()*window.innerHeight,
-      angle: rand(-Math.PI,Math.PI),
-      speed: rand(0.2, 0.8),
-      rotSpeed: rand(-0.01,0.01),
-      scale: rand(0.6,1.2),
-      hue: [140,200,320,40][i%4] // color variety
-    });
+let lastTime = 0;
+function drawStars(t){
+  const dt = (t - lastTime) || 16;
+  lastTime = t;
+
+  sctx.clearRect(0,0,starCanvas.width,starCanvas.height);
+  // subtle gradient overlay to increase depth
+  // draw stars
+  for(const st of stars){
+    // vertical floating motion
+    st.phase += dt*0.001 * st.speed;
+    st.y += Math.sin(st.phase)*0.15 * st.speed;
+    // wrap
+    if(st.y < -10) st.y = window.innerHeight + 10;
+    if(st.y > window.innerHeight + 10) st.y = -10;
+
+    const a = 0.45 + 0.55 * (0.5 + 0.5*Math.sin(st.phase*1.3));
+    sctx.beginPath();
+    const g = sctx.createRadialGradient(st.x, st.y, 0, st.x, st.y, st.size*6);
+    g.addColorStop(0, `rgba(110,255,170,${0.8*a})`);
+    g.addColorStop(0.3, `rgba(110,255,170,${0.18*a})`);
+    g.addColorStop(1, `rgba(110,255,170,0)`);
+    sctx.fillStyle = g;
+    sctx.arc(st.x, st.y, st.size*3.8, 0, Math.PI*2);
+    sctx.fill();
   }
+
+  requestAnimationFrame(drawStars);
 }
-initSwords();
-window.addEventListener('resize', initSwords);
+requestAnimationFrame(drawStars);
 
-/* block cubes for background (subtle, layered) */
-const cubes = [];
-function initCubes(){
-  cubes.length=0;
-  const count = Math.max(6, Math.floor(window.innerWidth/220));
-  for(let i=0;i<count;i++){
-    cubes.push({
-      x: Math.random()*window.innerWidth,
-      y: Math.random()*window.innerHeight,
-      size: Math.min(120, 64 + Math.random()*120),
-      angle: rand(-0.4,0.4),
-      drift: rand(-0.2,0.2),
-      depth: Math.random()
-    });
-  }
-}
-initCubes();
-window.addEventListener('resize', initCubes);
+/* =========================
+   3) Copy interaction + shapes animation
+   ========================= */
+const ipBox = document.getElementById('ipBox');
+const ipText = document.getElementById('ipText');
+const copyLabel = document.getElementById('copyLabel');
+const confettiLayer = document.getElementById('confettiLayer');
 
-/* draw small stylized sword as path */
-function drawSword(ctx,x,y,scale,angle,hue,alpha=1){
-  ctx.save();
-  ctx.translate(x,y);
-  ctx.rotate(angle);
-  ctx.scale(scale,scale);
-
-  // blade
-  ctx.beginPath();
-  ctx.moveTo(-6, -24);
-  ctx.lineTo(6, -24);
-  ctx.lineTo(8, 14);
-  ctx.lineTo(-8,14);
-  ctx.closePath();
-  ctx.fillStyle = `rgba(255,255,255,${0.9*alpha})`;
-  ctx.fill();
-
-  // hilt (colored)
-  ctx.beginPath();
-  ctx.rect(-12,14,24,6);
-  ctx.fillStyle = `hsla(${hue},85%,45%,${0.95*alpha})`;
-  ctx.fill();
-
-  // handle
-  ctx.beginPath();
-  ctx.rect(-5,20,10,18);
-  ctx.fillStyle = `rgba(40,20,10,${0.95*alpha})`;
-  ctx.fill();
-
-  // small highlight on blade
-  ctx.beginPath();
-  ctx.moveTo(0,-22); ctx.lineTo(2,12);
-  ctx.lineWidth = 1.2;
-  ctx.strokeStyle = 'rgba(255,255,255,0.22)';
-  ctx.stroke();
-
-  ctx.restore();
+function showCopyFeedback(){
+  // show label
+  copyLabel.style.opacity = 1;
+  copyLabel.style.transform = 'translateY(0)';
+  // animate shapes (star, triangle, circle)
+  spawnShape('star');
+  spawnShape('triangle');
+  spawnShape('circle');
+  // hide label after short time
+  setTimeout(()=> {
+    copyLabel.style.opacity = 0;
+    copyLabel.style.transform = 'translateY(-6px)';
+  }, 1400);
 }
 
-/* draw cube block (3D pixel cube) */
-function drawCube(ctx, x,y, size, angle, depthFactor){
-  // simple isometric-ish cube using three faces
-  const s = size;
-  // front face
-  ctx.save();
-  ctx.translate(x,y);
-  ctx.rotate(angle);
-  // shadowed top
-  ctx.fillStyle = `rgba(110, 70, 38, ${0.9 - depthFactor*0.4})`;
-  ctx.fillRect(-s/2, -s/2 - s*0.2, s, s*0.25);
-  // left face
-  ctx.fillStyle = `rgba(92,53,28, ${0.95 - depthFactor*0.4})`;
-  ctx.fillRect(-s/2, -s/2 + s*0.05, s*0.52, s);
-  // right face
-  ctx.fillStyle = `rgba(131,77,42, ${0.95 - depthFactor*0.4})`;
-  ctx.fillRect(-s/2 + s*0.48, -s/2 + s*0.05, s*0.52, s);
-  ctx.restore();
+function spawnShape(type){
+  // create element and animate with CSS + JS transforms
+  const el = document.createElement('div');
+  el.className = 'fx-shape';
+  // position inside center of ipBox
+  const rect = ipBox.getBoundingClientRect();
+  // random offset within box for variety
+  const rx = rect.left + rect.width*0.5 + (Math.random()*160 - 80);
+  const ry = rect.top + rect.height*0.5 + (Math.random()*70 - 35);
+
+  el.style.left = rx + 'px';
+  el.style.top = ry + 'px';
+
+  if(type === 'circle'){
+    el.classList.add('fx-circle');
+  } else if(type === 'triangle'){
+    el.classList.add('fx-triangle');
+    // style color
+    el.style.borderBottomColor = '#ffd24d';
+  } else { // star
+    el.classList.add('fx-star');
+    // insert tiny SVG star
+    el.innerHTML = `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 2.5l2.4 4.86L20 8.1l-4 3.9.94 5.5L12 15.9 7.06 17.6 8 12.1 4 8.2l5.6-.74L12 2.5z" fill="#fff6a8" />
+    </svg>`;
+  }
+
+  // initial tiny scale & opacity
+  el.style.transform = 'translate(-50%,-50%) scale(.2) rotate(0deg)';
+  el.style.opacity = '0';
+  confettiLayer.appendChild(el);
+
+  // animate: pop outward + fade
+  const dur = 700 + Math.random()*300;
+  const angle = (Math.random() * Math.PI*2);
+  const dist = 60 + Math.random()*80;
+  const tx = Math.cos(angle) * dist;
+  const ty = Math.sin(angle) * dist - (20 + Math.random()*30);
+
+  requestAnimationFrame(()=>{
+    el.style.transition = `transform ${dur}ms cubic-bezier(.2,.9,.2,1), opacity ${dur}ms ease`;
+    el.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(1.05) rotate(${Math.random()*360}deg)`;
+    el.style.opacity = '1';
+  });
+
+  setTimeout(()=>{
+    // fade out
+    el.style.transition = `transform 420ms ease, opacity 420ms ease`;
+    el.style.transform = `translate(calc(-50% + ${tx*1.5}px), calc(-50% + ${ty*1.5}px)) scale(.2) rotate(${Math.random()*720}deg)`;
+    el.style.opacity = '0';
+  }, dur - 140);
+
+  // cleanup
+  setTimeout(()=> el.remove(), dur + 600);
 }
 
-/* main draw loop */
-let last=0;
-function draw(t){
-  const dt = t - last;
-  last = t;
-  ctx.clearRect(0,0,canvas.width,canvas.height);
-
-  // backdrop gradient
-  const gw = window.innerWidth, gh = window.innerHeight;
-  const bg = ctx.createLinearGradient(0,0,0,gh);
-  bg.addColorStop(0, '#020705');
-  bg.addColorStop(1, '#00120a');
-  ctx.fillStyle = bg;
-  ctx.fillRect(0,0,gw,gh);
-
-  // stars
-  for(const s of stars){
-    ctx.fillStyle = `rgba(255,255,255,${s.a*0.6})`;
-    ctx.fillRect(s.x, s.y, s.r, s.r);
-  }
-
-  // subtle moving cube field (parallax)
-  for(const c of cubes){
-    c.x += (Math.sin(t*0.0001 + c.depth*10) * 0.15);
-    c.y += (Math.cos(t*0.00007 + c.depth*5) * 0.12);
-    drawCube(ctx, c.x, c.y, c.size * (0.6 + c.depth*0.8), c.angle + c.depth*0.02, c.depth);
-  }
-
-  // central "arena" subtle glow
-  const cx = gw/2, cy = gh/2;
-  const arenaR = Math.min(gw,gh) * 0.23;
-  const ag = ctx.createRadialGradient(cx,cy, arenaR*0.06, cx,cy, arenaR*1.4);
-  ag.addColorStop(0, 'rgba(22,163,74,0.06)');
-  ag.addColorStop(0.6, 'rgba(5,8,5,0.02)');
-  ag.addColorStop(1, 'rgba(0,0,0,0)');
-  ctx.fillStyle = ag;
-  ctx.beginPath();
-  ctx.arc(cx,cy, arenaR*1.6,0,Math.PI*2);
-  ctx.fill();
-
-  // floating swords orbiting around center
-  for(let i=0;i<swords.length;i++){
-    const s = swords[i];
-    // orbit movement
-    s.angle += s.rotSpeed * (1 + s.speed*0.02);
-    const orbit = arenaR * (1 + (i*0.18));
-    // small bobbing
-    s.x = cx + Math.cos(s.angle + i*0.6)* (orbit + Math.sin(t*0.0004 + i)*12);
-    s.y = cy + Math.sin(s.angle + i*0.6)* (orbit*0.54 + Math.cos(t*0.0003 + i)*8);
-    // scale/pulse
-    const scale = s.scale * (0.9 + 0.12*Math.sin(t*0.002 + i));
-    drawSword(ctx, s.x, s.y, scale, s.angle + 0.6, s.hue, 0.95);
-  }
-
-  // center "arena" ring
-  ctx.save();
-  ctx.translate(cx,cy);
-  ctx.rotate(t*0.00008);
-  ctx.beginPath();
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = 'rgba(22,163,74,0.06)';
-  ctx.ellipse(0,0, arenaR*1.05, arenaR*0.6, 0, 0, Math.PI*2);
-  ctx.stroke();
-  ctx.restore();
-
-  // shimmer particles near center
-  for(let i=0;i<24;i++){
-    const a = (t*0.0006 + i*0.26) % (Math.PI*2);
-    const r = arenaR*0.4 + Math.sin(t*0.0012 + i)* (arenaR*0.12);
-    const x = cx + Math.cos(a) * r;
-    const y = cy + Math.sin(a) * r*0.6;
-    ctx.beginPath();
-    ctx.fillStyle = `rgba(255,255,255,${0.06 + 0.4*Math.abs(Math.sin(t*0.001 + i))})`;
-    ctx.arc(x,y, 1.2 + Math.abs(Math.sin(t*0.001 + i))*1.4, 0, Math.PI*2);
-    ctx.fill();
-  }
-
-  requestAnimationFrame(draw);
-}
-requestAnimationFrame(draw);
-
-/* ---------- Button actions: copy IP + click tone ---------- */
-const copyBtn = document.getElementById('copyIpBtn');
-copyBtn.addEventListener('click', async ()=>{
+/* copy behavior */
+ipBox.addEventListener('click', async ()=>{
+  const text = ipText.textContent.trim();
   try{
-    await navigator.clipboard.writeText('dirtmc.pro:21411');
-    const old = copyBtn.textContent;
-    copyBtn.textContent = 'Copied ✔';
-    playClickTone();
-    setTimeout(()=> copyBtn.textContent = old, 1400);
+    await navigator.clipboard.writeText(text);
+    // ARIA change
+    ipBox.setAttribute('aria-pressed','true');
+    showCopyFeedback();
+    // temporarily change ip text to "Copy done" for accessibility? we keep ip and show label only
+    // Show quick micro-feedback by briefly flashing outline
+    ipBox.style.boxShadow = '0 10px 40px rgba(22,163,74,0.14)';
+    setTimeout(()=> ipBox.style.boxShadow = '', 600);
   }catch(e){
-    alert('Copy failed — try manually');
+    alert('Copy failed — please copy manually: ' + text);
   }
 });
 
-/* small click tone using WebAudio */
-let audioCtx;
-function playClickTone(){
-  try{
-    if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const o = audioCtx.createOscillator();
-    const g = audioCtx.createGain();
-    o.type = 'sine';
-    o.frequency.value = 660;
-    g.gain.value = 0.0001;
-    o.connect(g); g.connect(audioCtx.destination);
-    o.start();
-    // ramp up then down quickly
-    g.gain.exponentialRampToValueAtTime(0.12, audioCtx.currentTime + 0.02);
-    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + 0.18);
-    o.stop(audioCtx.currentTime + 0.22);
-  }catch(e){}
-}
+/* =========================
+   4) Social buttons open links (given)
+   ========================= */
+document.getElementById('discordBtn').addEventListener('click', ()=> {
+  window.open('https://discord.gg/dirtmc','_blank','noopener');
+});
+document.getElementById('tiktokBtn').addEventListener('click', ()=> {
+  window.open('https://vt.tiktok.com/ZSaGx7Yuo/','_blank','noopener');
+});
 
-/* init/resets on resize */
+/* =========================
+   5) Accessibility: keyboard copy via Enter/Space
+   ========================= */
+ipBox.tabIndex = 0;
+ipBox.addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter' || e.key === ' '){
+    e.preventDefault();
+    ipBox.click();
+  }
+});
+
+/* resize handlers (recompute stars) */
 window.addEventListener('resize', ()=>{
   initStars();
-  initSwords();
-  initCubes();
+  resizeStarCanvas();
 });
 
-/* initialize arrays on load */
-initStars();
-initSwords();
-initCubes();
-
-/* optional: small performance tweak - reduce elements on small screens */
-(function adaptForMobile(){
-  if(window.innerWidth < 520){
-    // reduce swords and cubes
-    while(swords.length>2) swords.pop();
-    while(cubes.length>4) cubes.pop();
-  }
-})();
+/* =========================
+   That's it — everything self-contained.
+   Notes:
+   - Put your background image file next to this index.html named 'background.png'
+     OR change the CSS variable --bg-img at top of this file to match your filename/path.
+   - PNG allowed (supports transparency); JPG also fine. Use a large resolution image.
+   - If you want the IP to be different, edit the text content of #ipText.
+*/
 </script>
 </body>
 </html>
