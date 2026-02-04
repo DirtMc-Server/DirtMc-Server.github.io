@@ -1,803 +1,385 @@
-<!DOCTYPE html>
-<html lang="ar">
+<!doctype html>
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Space Tree — لعبة الفضاء</title>
+<title>DirtMC — Copy IP</title>
+
+<!-- Use a clean display font for legibility on mobile; replace if you want pixel font -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
+
 <style>
-  :root{
-    --neon:#00f0ff;
-    --neon-2:#8b5cff;
-    --bg1:#030316;
-    --glass: rgba(255,255,255,0.04);
-    --card: rgba(10,20,40,0.6);
-  }
-  html,body{height:100%;margin:0;background: radial-gradient(ellipse at center, #001022 0%, #000 60%);font-family: "Segoe UI", Tahoma, Arial;}
-  canvas{display:block; width:100vw; height:100vh;}
-  #hud{
-    position:fixed; left:14px; top:12px; color:white; z-index:60;
-    text-shadow:0 0 8px rgba(0,0,0,0.8);
-  }
-  .stat{background:linear-gradient(135deg, rgba(255,255,255,0.03), rgba(0,0,0,0.2)); padding:8px 12px; border-radius:12px; margin-bottom:8px; display:flex; gap:10px; align-items:center; box-shadow:0 6px 18px rgba(0,0,0,0.6);}
-  #hud .big{font-weight:700; font-size:16px;}
-  #controls{position:fixed; right:12px; top:12px; z-index:60;}
-  .btn{background: linear-gradient(90deg, rgba(255,255,255,0.03), rgba(255,255,255,0.01)); padding:8px 12px; border-radius:10px; border:1px solid rgba(255,255,255,0.06); color:white; cursor:pointer; margin-left:8px}
-  #upgrade {
-    position: fixed; inset:0; display:none; z-index:100; align-items:center; justify-content:center;
-    backdrop-filter: blur(6px) saturate(150%); background: linear-gradient(180deg, rgba(1,3,20,0.7), rgba(0,0,0,0.8));
-  }
-  .upgrade-panel{
-    width:92%; max-width:1200px; height:86%; background: linear-gradient(180deg, rgba(6,10,22,0.6), rgba(4,6,10,0.55)); border-radius:16px; border:1px solid rgba(0,255,255,0.07); padding:20px; box-shadow:0 30px 80px rgba(0,0,0,0.7); color: #e9faff; display:flex; gap:18px;
-  }
-  .left{
-    width:44%; padding:14px; display:flex; flex-direction:column; gap:12px; align-items:center;
-  }
-  .right{flex:1; padding:6px 10px; overflow:auto;}
-  .panel-card{width:100%; background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.15)); border-radius:12px; padding:12px; box-shadow:0 8px 28px rgba(0,0,0,0.5); border:1px solid rgba(255,255,255,0.02);}
-  .title{font-size:20px; font-weight:700; display:flex; align-items:center; gap:10px}
-  .subtitle{color:rgba(200,240,255,0.7); font-size:13px}
-  #tree-canvas{width:100%; height:100%; background:
-    radial-gradient(circle at 20% 10%, rgba(0,255,220,0.035), transparent 6%),
-    radial-gradient(circle at 80% 90%, rgba(139,92,255,0.03), transparent 6%);}
-  .node {
-    width:160px; padding:12px; border-radius:12px; text-align:center; cursor:pointer;
-    border:2px solid rgba(255,255,255,0.06); background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
-    transition: transform .18s ease, box-shadow .18s ease, opacity .18s ease;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.6);
-    position:relative;
-  }
-  .node.locked{opacity:0.28; transform:scale(.98); pointer-events:none}
-  .node.unlocked{border-color:var(--neon); box-shadow:0 0 18px rgba(0,240,255,0.08), 0 10px 30px rgba(0,0,0,0.6);}
-  .node .n-title{font-weight:800; font-size:14px; margin-bottom:6px}
-  .node .n-desc{font-size:12px; color:rgba(200,240,255,0.6)}
-  .node .n-cost{position:absolute; right:8px; top:8px; background:rgba(0,0,0,0.35); padding:4px 8px; border-radius:8px; font-weight:700; font-size:12px}
-  .node.buyable{animation:nodePulse 1.2s infinite;}
-  @keyframes nodePulse{0%{box-shadow: 0 0 8px rgba(0,240,255,0.04)}50%{box-shadow: 0 0 18px rgba(0,240,255,0.12)}100%{box-shadow: 0 0 8px rgba(0,240,255,0.04)}}
-  .tree-area{width:100%; height:100%; display:flex; align-items:center; justify-content:center; position:relative; overflow:auto}
-  /* small icons row */
-  .row-icons{display:flex; gap:8px; margin-top:6px}
-  .stat-line{display:flex; gap:12px; align-items:center; justify-content:space-between; margin:6px 0; padding:6px 8px; border-radius:8px; background:rgba(0,0,0,0.25)}
-  .footer{display:flex; gap:8px; align-items:center; justify-content:space-between; margin-top:12px}
-  .glow {filter:drop-shadow(0 0 18px rgba(0,240,255,0.14));}
-  .close-btn{background:transparent; border:1px solid rgba(255,255,255,0.04); padding:8px 12px; border-radius:10px; color:#fff; cursor:pointer}
-  .buy-btn{background:linear-gradient(90deg,var(--neon),var(--neon-2)); padding:8px 12px; border-radius:10px; border:none; color:#021; font-weight:800; cursor:pointer}
-  .center-small{display:flex; gap:8px; align-items:center; justify-content:center}
-  /* tooltip */
-  .tooltip{position:fixed; z-index:9999; pointer-events:none; background:rgba(2,6,20,0.95); padding:8px 10px; border-radius:8px; border:1px solid rgba(0,255,255,0.06); color:#eaffff; font-size:13px}
-  /* mobile hint */
-  #hint{position:fixed; left:50%; transform:translateX(-50%); bottom:20px; background:linear-gradient(90deg, rgba(255,255,255,0.03), rgba(0,0,0,0.08)); padding:8px 12px; border-radius:12px; color:#dff; z-index:60; opacity:0.9}
+:root{
+  --accent-1: #16a34a;
+  --accent-2: #6ee7b7;
+  --bg-dark: #06120b;
+  --glass: rgba(255,255,255,0.04);
+  --text: #e9fff0;
+  /* Change background image path here if you name file differently */
+  --bg-img: url('background.png'); /* <- put your image file (png/jpg) in same folder */
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;background:var(--bg-dark);color:var(--text);-webkit-font-smoothing:antialiased;}
+a{color:inherit;text-decoration:none}
+
+/* background image layer (you put your image file next to index.html) */
+.bg-image{
+  position:fixed; inset:0; z-index:0; background-color:#000;
+  background-image: var(--bg-img);
+  background-size: cover;
+  background-position: center center;
+  filter: brightness(.42);
+}
+
+/* animated star dots canvas sits above bg-image */
+#starCanvas{ position:fixed; inset:0; z-index:1; pointer-events:none; }
+
+/* main UI centered */
+.container{ position:relative; z-index:5; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
+
+/* card (center big square) */
+.card-wrap{
+  width:min(920px,96%); max-width:980px;
+  display:flex; flex-direction:column; align-items:center; gap:18px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* Title above square */
+.site-title{
+  font-weight:900; font-size:28px; letter-spacing:1px;
+  color:var(--accent-2);
+  text-shadow: 0 8px 20px rgba(6,255,140,0.06);
+  transform: translateY(-6px);
+}
+
+/* big center square */
+.centerBox{
+  width:100%; max-width:760px;
+  background: linear-gradient(180deg, rgba(0,0,0,0.45), rgba(255,255,255,0.02));
+  border-radius:14px;
+  padding:28px;
+  display:flex; flex-direction:column; align-items:center; gap:18px;
+  box-shadow: 0 30px 90px rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,255,255,0.04);
+}
+
+/* the big IP text area */
+.ipBox{
+  width:100%; display:flex; align-items:center; justify-content:center; gap:14px;
+  padding:22px; border-radius:10px;
+  background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
+  border: 2px solid rgba(255,255,255,0.03);
+  cursor:pointer;
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.ipBox:active{ transform: translateY(2px); }
+/* show pointer on mobile as well */
+.ipText{
+  font-family: Inter, system-ui, sans-serif;
+  font-weight:900;
+  font-size:26px;
+  letter-spacing:0.8px;
+  color: var(--text);
+  text-align:center;
+  user-select: none;
+}
+
+/* success label */
+.copyLabel{
+  font-size:13px; color:var(--accent-2); font-weight:800; opacity:0; transform:translateY(-6px); transition: all .28s ease;
+  pointer-events:none;
+}
+
+/* confetti shapes container (absolute overlay inside centerBox) */
+.confetti-layer{ position:relative; width:100%; height:0; pointer-events:none; }
+
+/* buttons row */
+.btnRow{ display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:2px; }
+.btn{
+  padding:10px 16px; border-radius:10px; cursor:pointer; border:0; font-weight:800;
+  color:#021205; background: linear-gradient(90deg,var(--accent-1),var(--accent-2));
+  box-shadow: 0 12px 40px rgba(22,163,74,0.08);
+  transition: transform .12s ease, box-shadow .12s ease;
+}
+.btn:active{ transform:translateY(2px); }
+.btnDiscord{ background: linear-gradient(90deg,#0b63d6,#7ab8ff); color:white; box-shadow:0 12px 40px rgba(122,184,255,0.08) }
+.btnTiktok{ background: linear-gradient(90deg,#b20059,#ff6fb5); color:white; box-shadow:0 12px 40px rgba(255,111,181,0.08) }
+
+/* little feedback star/triangle/circle styles (created by JS as inline elements) */
+.fx-shape{
+  position:absolute; left:50%; top:50%;
+  width:22px; height:22px; transform:translate(-50%,-50%) scale(0.2);
+  opacity:0; pointer-events:none; z-index:9;
+  filter: drop-shadow(0 8px 12px rgba(0,0,0,0.45));
+}
+
+/* circle */
+.fx-circle{ border-radius:50%; background: radial-gradient(circle, #fff 0%, rgba(255,255,255,0.9) 15%, rgba(54,255,176,0.9) 80%); }
+/* triangle via CSS border */
+.fx-triangle{
+  width:0; height:0; border-left:12px solid transparent; border-right:12px solid transparent;
+  border-bottom:20px solid rgba(255,255,255,0.95);
+  background:transparent;
+  transform-origin:center center;
+}
+/* star (SVG inserted) */
+.fx-star svg{ width:24px; height:24px; }
+
+/* small instruction under ip */
+.ipHint{ font-size:12px; color:rgba(233,255,240,0.7); margin-top:4px; }
+
+/* responsive tweaks */
+@media(max-width:640px){
+  .ipText{ font-size:20px }
+  .site-title{ font-size:20px }
+  .centerBox{ padding:18px }
+  .btn{ padding:9px 12px; font-size:14px }
+}
 </style>
 </head>
 <body>
-<canvas id="game"></canvas>
 
-<div id="hud">
-  <div class="stat"><div class="big">❤ الصحة: <span id="hpDisplay">20</span></div></div>
-  <div class="stat"><div>💰 فلوس: <span id="moneyDisplay">0</span></div></div>
-  <div class="stat"><div>⭐ نقاط: <span id="scoreDisplay">0</span></div></div>
-</div>
+<!-- background image layer: put your image file in same folder and name it background.png (or change --bg-img variable at top) -->
+<div class="bg-image" aria-hidden="true"></div>
 
-<div id="controls">
-  <button class="btn" id="openUp">شجرة التطوير</button>
-  <button class="btn" id="pauseBtn">إيقاف/تشغيل</button>
-</div>
+<!-- star dots canvas -->
+<canvas id="starCanvas" aria-hidden="true"></canvas>
 
-<div id="upgrade" aria-hidden="true">
-  <div class="upgrade-panel">
-    <div class="left">
-      <div class="panel-card" style="width:100%">
-        <div class="title">شجرة المهارات الأسطورية <span style="color:var(--neon);">⚡</span></div>
-        <div class="subtitle">استخدم الفلوس التي جمعتها من تدمير الصخور لتطوير السفينة</div>
-        <div style="height:12px"></div>
-        <div style="display:flex; gap:8px; align-items:center; justify-content:space-between">
-          <div>فلوسك: <strong id="moneyBig">0</strong></div>
-          <div>نقاط: <strong id="scoreBig">0</strong></div>
-        </div>
-        <div style="height:12px"></div>
-        <div class="center-small">
-          <button class="close-btn" id="closeUp">رجوع</button>
-          <button class="buy-btn" id="resetTree">إعادة الشجرة (حذف التقدم)</button>
-        </div>
+<div class="container" role="main">
+  <div class="card-wrap" role="article" aria-label="DirtMC main">
+    <div class="site-title" id="siteTitle">DirtMc</div>
+
+    <div class="centerBox" role="region" aria-label="IP box region" >
+      <div class="confetti-layer" id="confettiLayer" aria-hidden="true"></div>
+
+      <!-- clickable IP box -->
+      <div class="ipBox" id="ipBox" role="button" aria-pressed="false" aria-label="Copy server ip">
+        <div class="ipText" id="ipText">DirtMc.pro:21411</div>
       </div>
 
-      <div class="panel-card" style="width:100%; margin-top:12px">
-        <div class="title">ملخص السفينه</div>
-        <div class="subtitle">الإحصائيات الحالية</div>
-        <div style="height:8px"></div>
-        <div class="stat-line">الضرر: <strong id="statDamage">3</strong></div>
-        <div class="stat-line">سرعة إطلاق: <strong id="statFireRate">2000</strong> مللي</div>
-        <div class="stat-line">عدد الصواريخ: <strong id="statMissiles">1</strong></div>
-        <div class="stat-line">سرعة الصاروخ: <strong id="statMissileSpeed">6</strong></div>
-        <div class="stat-line">الحد الأقصى للصحة: <strong id="statMaxHP">20</strong></div>
-      </div>
-    </div>
+      <!-- temporary copy label -->
+      <div class="copyLabel" id="copyLabel" aria-live="polite">Copy done</div>
 
-    <div class="right">
-      <div class="panel-card" style="height:100%" id="tree-canvas">
-        <!-- We'll render nodes in JS into this area -->
+      <div class="ipHint">Tap the box to copy the IP</div>
+
+      <!-- buttons -->
+      <div class="btnRow" style="margin-top:12px;">
+        <button class="btn btnDiscord" id="discordBtn" aria-label="Open Discord">Discord</button>
+        <button class="btn btnTiktok" id="tiktokBtn" aria-label="Open TikTok">TikTok</button>
       </div>
     </div>
   </div>
 </div>
 
-<div id="hint">WASD للحركة • اضغط شجرة التطوير لفتح الشجرة</div>
-
-<div id="tooltip" class="tooltip" style="display:none"></div>
-
 <script>
-/* ----------------------------- Utilities & Persistence ----------------------------- */
-const saveKey = "space_tree_save_v1";
-let state = {
-  upgrades: {},
-  money: 0,
-  score: 0
-};
-const defaults = {
-  money: 0, score:0, upgrades:{}
-};
+/* =========================
+   1) Where to put your background image
+   =========================
+   - Place the image file in the same folder as this index.html
+   - Name it `background.png` (or `background.jpg`). Then the CSS variable at top (--bg-img) will point to it.
+   - PNG is fine (supports transparency). JPG/WEBP also fine. Use large resolution (e.g. 1920x1080) for best look.
+   - If you named it different, edit :root --bg-img value in the <style> (top) to your filename.
+*/
 
-function loadState(){
-  let s = localStorage.getItem(saveKey);
-  if(s){
-    try{ state = JSON.parse(s); }catch(e){ state = {...defaults}; }
-  } else state = {...defaults};
-  // ensure object
-  if(!state.upgrades) state.upgrades = {};
+/* =========================
+   2) Star dots canvas (glowing floating dots)
+   ========================= */
+const starCanvas = document.getElementById('starCanvas');
+const sctx = starCanvas.getContext('2d');
+let DPR = Math.max(1, window.devicePixelRatio || 1);
+
+function resizeStarCanvas(){
+  DPR = Math.max(1, window.devicePixelRatio || 1);
+  starCanvas.width = Math.floor(window.innerWidth * DPR);
+  starCanvas.height = Math.floor(window.innerHeight * DPR);
+  starCanvas.style.width = window.innerWidth + 'px';
+  starCanvas.style.height = window.innerHeight + 'px';
+  sctx.setTransform(DPR,0,0,DPR,0,0);
 }
-function saveState(){ localStorage.setItem(saveKey, JSON.stringify(state)); }
+window.addEventListener('resize', resizeStarCanvas);
+resizeStarCanvas();
 
-/* ----------------------------- Canvas Game Setup ----------------------------- */
-const canvas = document.getElementById("game");
-const ctx = canvas.getContext("2d");
-let W = canvas.width = innerWidth;
-let H = canvas.height = innerHeight;
-addEventListener('resize', ()=>{ W = canvas.width = innerWidth; H = canvas.height = innerHeight; });
-
-/* Audio simple */
-const AudioCtx = window.AudioContext ? new AudioContext() : null;
-function beep(f=440,d=0.06,vol=0.06){
-  if(!AudioCtx) return;
-  const o = AudioCtx.createOscillator();
-  const g = AudioCtx.createGain();
-  o.type='sine'; o.frequency.value=f;
-  g.gain.value = vol;
-  o.connect(g); g.connect(AudioCtx.destination);
-  o.start(); o.stop(AudioCtx.currentTime + d);
-}
-
-/* ----------------------------- Player ----------------------------- */
-let player = {
-  x: W/2, y: H/2, r:18,
-  vx:0, vy:0,
-  health:20, maxHealth:20,
-  damage:3, fireRate:2000, missiles:1, missileSpeed:6,
-  critChance:0, moneyMultiplier:1
-};
-
-/* movement */
-let input = {w:false,a:false,s:false,d:false};
-addEventListener('keydown', e=>{ if(e.key==='w'||e.key==='W'||e.key==='ArrowUp') input.w=true;
-  if(e.key==='s'||e.key==='S'||e.key==='ArrowDown') input.s=true;
-  if(e.key==='a'||e.key==='A'||e.key==='ArrowLeft') input.a=true;
-  if(e.key==='d'||e.key==='D'||e.key==='ArrowRight') input.d=true;
-});
-addEventListener('keyup', e=>{ if(e.key==='w'||e.key==='W'||e.key==='ArrowUp') input.w=false;
-  if(e.key==='s'||e.key==='S'||e.key==='ArrowDown') input.s=false;
-  if(e.key==='a'||e.key==='A'||e.key==='ArrowLeft') input.a=false;
-  if(e.key==='d'||e.key==='D'||e.key==='ArrowRight') input.d=false;
-});
-
-/* touch controls - simple joystick (press to move direction) */
-let touchDir = null;
-addEventListener('touchstart', e=>{
-  const t = e.touches[0];
-  touchDir = {x:t.clientX, y:t.clientY};
-});
-addEventListener('touchmove', e=>{
-  const t = e.touches[0];
-  if(!touchDir) touchDir = {x:t.clientX, y:t.clientY};
-  const dx = t.clientX - touchDir.x;
-  const dy = t.clientY - touchDir.y;
-  // set input depending on vector
-  input.w = dy < -10;
-  input.s = dy > 10;
-  input.a = dx < -10;
-  input.d = dx > 10;
-});
-addEventListener('touchend', e=>{ input={w:false,a:false,s:false,d:false}; touchDir=null; });
-
-/* ----------------------------- Game Entities ----------------------------- */
-let stars = [], rocks = [], missiles = [], particles = [];
-for(let i=0;i<160;i++) stars.push({x:Math.random()*W, y:Math.random()*H, s:Math.random()*2+0.3, twinkle: Math.random()*1.2});
-
-function spawnRock(edge=null){
-  // size random 8-40
-  const r = Math.random()*32 + 8;
-  let x,y;
-  if(edge===null) edge = Math.floor(Math.random()*4);
-  if(edge===0){ x = -r-10; y = Math.random()*H; }
-  else if(edge===1){ x = W + r + 10; y = Math.random()*H; }
-  else if(edge===2){ x = Math.random()*W; y = -r-10; }
-  else { x = Math.random()*W; y = H + r + 10; }
-  rocks.push({
-    x,y, r,
-    hp: Math.ceil(r/4)*5, // bigger hp
-    baseSpeed: Math.random()*0.4 + 0.6,
-    vx:0, vy:0,
-    value: Math.ceil(r/3) * 5 // money reward
-  });
-}
-
-/* spawn initial rocks */
-for(let i=0;i<8;i++) spawnRock();
-
-/* ----------------------------- Upgrade Tree Data ----------------------------- */
-loadState();
-const upgradesDef = {
-  // id: {name, desc, cost, maxLevel, deps: [ids], apply(level)}
-  damage: {name:"الضرر", desc:"يزيد ضرر الصواريخ", cost:40, max:6, deps:[], apply:(lvl)=> player.damage = 3 + lvl*2},
-  fireRate: {name:"سرعة الإطلاق", desc:"يقلل زمن بين إطلاقات الصواريخ", cost:60, max:6, deps:['damage'], apply:(lvl)=> player.fireRate = Math.max(300,2000 - lvl*250)},
-  missiles: {name:"عدد الصواريخ", desc:"يزيد عدد الصواريخ التي تطلق كل دورة", cost:80, max:6, deps:['damage'], apply:(lvl)=> player.missiles = 1 + lvl},
-  missileSpeed: {name:"سرعة الصاروخ", desc:"يزيد سرعة الصواريخ", cost:70, max:5, deps:['missiles'], apply:(lvl)=> player.missileSpeed = 6 + lvl*2},
-  explosion: {name:"انفجار", desc:"تتسبب الصواريخ بانفجار عند الاصطدام يضر صخور قريبة", cost:120, max:3, deps:['missileSpeed'], apply:(lvl)=> player.explosion = lvl},
-  pierce: {name:"اختراق", desc:"قدرة الصاروخ على اختراق صخرة أخرى", cost:90, max:3, deps:['damage'], apply:(lvl)=> player.pierce = lvl},
-  crit: {name:"فرصة ضربة حرجة", desc:"فرصة لزيادة الضرر x2", cost:90, max:5, deps:['damage'], apply:(lvl)=> player.critChance = lvl*0.06},
-  maxHP: {name:"زيادة الحد الأقصى للدم", desc:"يزيد الحد الأقصى للصحة", cost:100, max:6, deps:['fireRate'], apply:(lvl)=> { player.maxHealth = 20 + lvl*5; if(player.health>player.maxHealth) player.health = player.maxHealth; }},
-  regen: {name:"تجدد تلقائي", desc:"تستعيد صحة صغيرة تلقائياً على فترات", cost:140, max:3, deps:['maxHP'], apply:(lvl)=> player.regen = lvl},
-  rockDensity: {name:"كثافة الصخور", desc:"يزيد عدد الصخور التي تظهر (تؤثر على التحدي)", cost:80, max:5, deps:['fireRate'], apply:(lvl)=> game.rockSpawnInterval = Math.max(350, game.baseRockSpawn - lvl*100) },
-  rockSpeed: {name:"سرعة الصخور", desc:"يزيد سرعة الصخور (تحدي)", cost:70, max:5, deps:['rockDensity'], apply:(lvl)=> game.rockBaseSpeed = 0.6 + lvl*0.25 },
-  moneyBoost: {name:"زيادة الفلوس", desc:"يزيد قيمة المكافآت من تدمير الصخور", cost:120, max:5, deps:['rockDensity'], apply:(lvl)=> player.moneyMultiplier = 1 + lvl*0.18},
-  passiveIncome: {name:"دخل سلبي", desc:"تُضاف فلوس تلقائياً كل 6 ثواني", cost:160, max:4, deps:['moneyBoost'], apply:(lvl)=> game.passiveInc = lvl},
-  homing: {name:"تتبع", desc:"الصواريخ تصبح متتبعة بشكل أفضل", cost:130, max:3, deps:['missiles'], apply:(lvl)=> player.homing = lvl},
-  split: {name:"تشعب الصاروخ", desc:"الصاروخ ينشق لعدة شظايا عند الإصابة", cost:150, max:3, deps:['explosion'], apply:(lvl)=> player.split = lvl},
-  shield: {name:"درع", desc:"درع يمتص ضرر محدود قبل التأثير على الصحة", cost:200, max:3, deps:['maxHP'], apply:(lvl)=> player.shieldMax = lvl*8},
-  multihit: {name:"مضاعفة الضرب", desc:"الصاروخ قد يضرب عدة أهداف", cost:150, max:4, deps:['pierce'], apply:(lvl)=> player.multiHit = lvl},
-  speedBoost: {name:"زيادة سرعة السفينة", desc:"تزيد سرعة حركة اللاعب", cost:90, max:4, deps:[], apply:(lvl)=> player.speed = 3 + lvl*0.8},
-  missileCountBoost: {name:"صواريخ إحترافية", desc:"صواريخ إضافية / split", cost:200, max:3, deps:['missiles','split'], apply:(lvl)=> player.missileBonus = lvl},
-  // ... more nodes can be added to make tree deeper
-};
-
-/* initial upgrade levels */
-if(!state.upgrades) state.upgrades = {};
-for(const id in upgradesDef) if(state.upgrades[id] === undefined) state.upgrades[id] = 0;
-
-/* ----------------------------- Game Config ----------------------------- */
-let game = {
-  paused:false,
-  baseRockSpawn: 1200,
-  rockSpawnInterval: 1200,
-  rockBaseSpeed: 0.6,
-  lastSpawn: performance.now(),
-  lastFire: performance.now(),
-  lastRegenTick: performance.now(),
-  passiveInc: state.passiveInc || 0
-};
-
-/* apply upgrades to player at load */
-function applyAllUpgrades(){
-  // reset to base
-  player.damage = 3; player.fireRate = 2000; player.missiles = 1; player.missileSpeed = 6;
-  player.critChance = 0; player.pierce = 0; player.explosion = 0; player.regen = 0; player.moneyMultiplier = 1;
-  player.homing = 0; player.split = 0; player.shieldMax = 0; player.multiHit = 0; player.speed = 3; player.missileBonus = 0;
-  game.rockSpawnInterval = game.baseRockSpawn; game.rockBaseSpeed = 0.6; game.passiveInc = 0;
-  for(const id in upgradesDef){
-    const lvl = state.upgrades[id] || 0;
-    const fn = upgradesDef[id].apply;
-    if(fn) fn(lvl);
-  }
-}
-applyAllUpgrades();
-
-/* ----------------------------- UI Bindings ----------------------------- */
-const hpDisplay = document.getElementById("hpDisplay");
-const moneyDisplay = document.getElementById("moneyDisplay");
-const scoreDisplay = document.getElementById("scoreDisplay");
-const moneyBig = document.getElementById("moneyBig");
-const scoreBig = document.getElementById("scoreBig");
-const statDamage = document.getElementById("statDamage");
-const statFireRate = document.getElementById("statFireRate");
-const statMissiles = document.getElementById("statMissiles");
-const statMissileSpeed = document.getElementById("statMissileSpeed");
-const statMaxHP = document.getElementById("statMaxHP");
-
-function updateHUD(){
-  hpDisplay.textContent = Math.max(0, Math.floor(player.health));
-  moneyDisplay.textContent = Math.floor(state.money);
-  scoreDisplay.textContent = Math.floor(state.score);
-  moneyBig.textContent = Math.floor(state.money);
-  scoreBig.textContent = Math.floor(state.score);
-  statDamage.textContent = player.damage;
-  statFireRate.textContent = player.fireRate;
-  statMissiles.textContent = player.missiles;
-  statMissileSpeed.textContent = player.missileSpeed;
-  statMaxHP.textContent = player.maxHealth;
-}
-updateHUD();
-
-/* ----------------------------- Game Logic ----------------------------- */
-function update(dt, now){
-  if(game.paused) return;
-  // stars twinkle & move
-  for(const s of stars){ s.y += 0.2 * s.s; if(s.y > H) s.y = -2; s.twinkle += 0.02; }
-
-  // player movement
-  let spd = player.speed || 3;
-  let ax=0, ay=0;
-  if(input.w) ay -= spd; if(input.s) ay += spd;
-  if(input.a) ax -= spd; if(input.d) ax += spd;
-  player.x += ax; player.y += ay;
-  // clamp in screen
-  if(player.x < 0) player.x = 0; if(player.x > W) player.x = W;
-  if(player.y < 0) player.y = 0; if(player.y > H) player.y = H;
-
-  // spawn rocks
-  if(now - game.lastSpawn > game.rockSpawnInterval){
-    game.lastSpawn = now;
-    // spawn from a random edge
-    spawnRock(Math.floor(Math.random()*4));
-  }
-
-  // rocks behavior: chase player slowly and wrap edges
-  for(let i = rocks.length-1; i>=0; i--){
-    const r = rocks[i];
-    // direction toward player
-    const dx = player.x - r.x, dy = player.y - r.y;
-    const d = Math.hypot(dx,dy) || 1;
-    const speedFactor = (game.rockBaseSpeed + (r.r/60)) * (1 + ( (state.upgrades.rockSpeed || 0) * 0.05 ));
-    r.x += (dx/d) * speedFactor;
-    r.y += (dy/d) * speedFactor;
-
-    // wrap-around edges: if rock fully leaves from any side, re-enter from opposite
-    if(r.x < -r.r - 30) r.x = W + r.r + 10;
-    if(r.x > W + r.r + 30) r.x = -r.r - 10;
-    if(r.y < -r.r - 30) r.y = H + r.r + 10;
-    if(r.y > H + r.r + 30) r.y = -r.r - 10;
-
-    // collision with player
-    const dist = Math.hypot(r.x-player.x, r.y-player.y);
-    if(dist < r.r + player.r){
-      // apply damage
-      let dmg = 2; // base contact damage
-      // shield
-      if(player.shield && player.shield > 0){
-        const take = Math.min(player.shield, dmg);
-        player.shield -= take; dmg -= take;
-      }
-      player.health -= dmg;
-      // knockback
-      const nx = (r.x - player.x)/dist;
-      r.x += nx * 24;
-      r.y += (r.y - player.y)/dist * 24;
-      // small particle
-      for(let p=0;p<8;p++) particles.push({x:player.x + (Math.random()-0.5)*20, y:player.y + (Math.random()-0.5)*20, vx:(Math.random()-0.5)*3, vy:(Math.random()-0.5)*3, life:14, col:'#ff7a7a'});
-      beep(220,0.03,0.04);
-      // destroy rock on contact sometimes (big ones remain)
-      if(Math.random() < 0.12){ // chance
-        destroyRock(i);
-      }
-    }
-
-    // if rock hp <=0 remove
-    if(r.hp <= 0){
-      destroyRock(i);
-    }
-  }
-
-  // missiles movement
-  for(let mi = missiles.length-1; mi>=0; mi--){
-    const m = missiles[mi];
-    // homing toward target (improved if player.homing)
-    if(m.target && rocks.includes(m.target)){
-      const tx = m.target.x, ty = m.target.y;
-      const dx = tx - m.x, dy = ty - m.y;
-      const d = Math.hypot(dx,dy) || 1;
-      const homingPower = 0.95 + ( (player.homing || 0) * 0.07 );
-      m.vx = (m.vx * (1-homingPower)) + (dx/d)*player.missileSpeed * homingPower;
-      m.vy = (m.vy * (1-homingPower)) + (dy/d)*player.missileSpeed * homingPower;
-    }
-    // update pos
-    m.x += m.vx; m.y += m.vy;
-
-    // edge wrap for missiles too (so they don't vanish)
-    if(m.x < -20) m.x = W + 20;
-    if(m.x > W + 20) m.x = -20;
-    if(m.y < -20) m.y = H + 20;
-    if(m.y > H + 20) m.y = -20;
-
-    // check collisions with rocks
-    for(let ri = rocks.length-1; ri>=0; ri--){
-      const r = rocks[ri];
-      const dd = Math.hypot(r.x - m.x, r.y - m.y);
-      if(dd < r.r + 6){
-        // hit
-        // critical?
-        const crit = Math.random() < (player.critChance || 0);
-        const baseD = player.damage;
-        const dmg = baseD * (crit ? 2 : 1);
-        r.hp -= dmg;
-        // particles
-        for(let p=0;p<12;p++) particles.push({x:m.x, y:m.y, vx:(Math.random()-0.5)*4, vy:(Math.random()-0.5)*4, life:18, col: crit ? '#ffd46a' : '#ffb2b2' });
-        beep(540,0.02,0.04);
-        // explosion area
-        if(player.explosion){
-          const rad = 30 * player.explosion;
-          for(let rii=rocks.length-1; rii>=0; rii--){
-            const rr = rocks[rii];
-            const d2 = Math.hypot(rr.x - m.x, rr.y - m.y);
-            if(d2 < rad && rr !== r){
-              rr.hp -= Math.ceil(dmg*0.6);
-            }
-          }
-        }
-        // split behavior
-        if(player.split){
-          for(let s=0; s<player.split; s++){
-            // small shrapnel missiles
-            particles.push({x:m.x,y:m.y,vx:(Math.random()-0.5)*6,vy:(Math.random()-0.5)*6,life:18,col:'#ffd4ff'});
-          }
-        }
-        // pierce / multiHit logic: reduce pierce count else remove
-        if(player.pierce && m.pierceLeft > 0){
-          m.pierceLeft--;
-        } else if(player.multiHit && m.hitsLeft > 0){
-          m.hitsLeft--;
-        } else {
-          // destroy missile
-          missiles.splice(mi,1);
-        }
-        break;
-      }
-    }
-  }
-
-  // particles update
-  for(let i = particles.length-1; i>=0; i--){
-    const p = particles[i];
-    p.x += p.vx; p.y += p.vy;
-    p.vx *= 0.99; p.vy *= 0.99;
-    p.life--;
-    if(p.life <= 0) particles.splice(i,1);
-  }
-
-  // passive regen & passive income
-  if(player.regen && now - game.lastRegenTick > 2000){
-    player.health = Math.min(player.maxHealth, player.health + (player.regen));
-    game.lastRegenTick = now;
-  }
-  if(game.passiveInc && now - (game.lastPassive || 0) > 6000){
-    const amt = 5 * game.passiveInc;
-    state.money += amt;
-    game.lastPassive = now;
-    beep(660,0.02,0.03);
-  }
-
-  // death check
-  if(player.health <= 0){
-    game.paused = true;
-    openUpgrade();
-  }
-
-  updateHUD();
-}
-
-/* ----------------------------- Destroy Rock ----------------------------- */
-function destroyRock(index){
-  const r = rocks[index];
-  if(!r) return;
-  // reward
-  const reward = Math.ceil(r.value * (player.moneyMultiplier || 1));
-  state.money += reward;
-  state.score += Math.ceil(r.r/2);
-  // spawn explosion particles
-  for(let i=0;i<20;i++) particles.push({x:r.x, y:r.y, vx:(Math.random()-0.5)*6, vy:(Math.random()-0.5)*6, life:22, col:'#ffd4a3'});
-  // possibly spawn fragments (smaller rocks)
-  if(r.r > 18){
-    const parts = Math.min(3, Math.floor(r.r/12));
-    for(let p=0; p<parts; p++){
-      const rr = {
-        x: r.x + (Math.random()-0.5)*20,
-        y: r.y + (Math.random()-0.5)*20,
-        r: r.r * (0.4 + Math.random()*0.2),
-        hp: Math.ceil(r.r*0.5),
-        baseSpeed: Math.random()*0.6 + 0.3,
-        value: Math.ceil((r.r*0.4)/3)*5
-      };
-      rocks.push(rr);
-    }
-  }
-  // remove rock
-  rocks.splice(index,1);
-  // spawn a new rock after some time
-  setTimeout(()=> spawnRock(Math.floor(Math.random()*4)), 600 + Math.random()*1000);
-  beep(260,0.02,0.05);
-  saveState();
-}
-
-/* ----------------------------- Firing Logic ----------------------------- */
-function autoFire(now){
-  if(game.paused) return;
-  if(now - game.lastFire < (player.fireRate || 2000)) return;
-  game.lastFire = now;
-  // launch player.missiles + missileBonus
-  const count = (player.missiles || 1) + (player.missileBonus || 0);
+const stars = [];
+function initStars(){
+  stars.length = 0;
+  const count = Math.max(50, Math.floor((window.innerWidth * window.innerHeight) / 45000));
   for(let i=0;i<count;i++){
-    // pick nearest rock within reasonable distance; if none pick random
-    if(rocks.length === 0) break;
-    // choose weighted nearest
-    let target = null; let minD = 1e9;
-    for(const r of rocks){
-      const d = Math.hypot(r.x-player.x, r.y-player.y);
-      if(d < minD){ minD = d; target = r; }
-    }
-    // add slight randomness: if many rocks, pick random near-neighbor
-    if(Math.random() < 0.15 && rocks.length > 3) target = rocks[Math.floor(Math.random()*rocks.length)];
-    const angle = Math.atan2((target.y - player.y)+(Math.random()-0.5)*40, (target.x - player.x)+(Math.random()-0.5)*40);
-    const vx = Math.cos(angle) * (player.missileSpeed || 6);
-    const vy = Math.sin(angle) * (player.missileSpeed || 6);
-    const missile = {x:player.x + Math.cos(angle)*player.r, y:player.y + Math.sin(angle)*player.r, vx, vy, target, pierceLeft: (player.pierce||0), hitsLeft: (player.multiHit||0) };
-    missiles.push(missile);
-  }
-}
-
-/* ----------------------------- Render ----------------------------- */
-function render(){
-  // background gradient
-  ctx.clearRect(0,0,W,H);
-  const g = ctx.createLinearGradient(0,0,0,H);
-  g.addColorStop(0,'#001020'); g.addColorStop(1,'#000106');
-  ctx.fillStyle = g; ctx.fillRect(0,0,W,H);
-
-  // stars
-  for(const s of stars){
-    ctx.fillStyle = 'rgba(255,255,255,' + (0.4 + 0.6*Math.sin(s.twinkle)) + ')';
-    ctx.fillRect(s.x, s.y, s.s*1.6, s.s*1.6);
-  }
-
-  // rocks
-  for(const r of rocks){
-    // rock shading
-    const grad = ctx.createRadialGradient(r.x - r.r*0.3, r.y - r.r*0.3, r.r*0.2, r.x, r.y, r.r);
-    grad.addColorStop(0, '#bfbfbf'); grad.addColorStop(0.6, '#8e8e8e'); grad.addColorStop(1, '#4e4e4e');
-    ctx.fillStyle = grad;
-    ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, Math.PI*2); ctx.fill();
-    // crack lines
-    ctx.strokeStyle = 'rgba(0,0,0,0.25)'; ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(r.x - r.r*0.6, r.y - r.r*0.3);
-    ctx.lineTo(r.x + r.r*0.2, r.y + r.r*0.7);
-    ctx.stroke();
-    // hp bar
-    ctx.fillStyle = 'rgba(0,0,0,0.45)'; ctx.fillRect(r.x - r.r, r.y - r.r - 8, r.r*2, 6);
-    ctx.fillStyle = '#ff6b6b'; ctx.fillRect(r.x - r.r, r.y - r.r - 8, (r.hp / (Math.ceil(r.r/4)*5)) * r.r*2, 6);
-  }
-
-  // missiles
-  for(const m of missiles){
-    ctx.fillStyle = '#ff9d9d'; ctx.beginPath(); ctx.arc(m.x, m.y, 4,0,Math.PI*2); ctx.fill();
-    // trailing
-    ctx.fillStyle='#ffcccb';
-    ctx.fillRect(m.x-1, m.y-6, 2, 4);
-  }
-
-  // player ship (draw stylized ship with glow)
-  ctx.save();
-  ctx.translate(player.x, player.y);
-  // glow
-  ctx.beginPath();
-  ctx.fillStyle = 'rgba(0,240,255,0.06)';
-  ctx.arc(0,0,player.r+18,0,Math.PI*2); ctx.fill();
-  // body
-  ctx.beginPath();
-  ctx.fillStyle = '#88fff6';
-  ctx.moveTo(player.r,0);
-  ctx.lineTo(-player.r*0.6, -player.r*0.9);
-  ctx.lineTo(-player.r*0.6, player.r*0.9);
-  ctx.closePath(); ctx.fill();
-  // cockpit
-  ctx.beginPath();
-  ctx.fillStyle = '#021224'; ctx.arc(-player.r*0.25, 0, player.r*0.4, 0, Math.PI*2); ctx.fill();
-  ctx.restore();
-
-  // particles
-  for(const p of particles){
-    ctx.fillStyle = p.col;
-    ctx.fillRect(p.x, p.y, 2, 2);
-  }
-
-  // HUD overlay (subtle)
-  ctx.save();
-  ctx.fillStyle = 'rgba(0,0,0,0.25)';
-  ctx.fillRect(8, H-60, 260, 44);
-  ctx.restore();
-}
-
-/* ----------------------------- Main Loop ----------------------------- */
-let lastTime = performance.now();
-function tick(now){
-  const dt = now - lastTime;
-  update(dt, now);
-  autoFire(now);
-  render();
-  lastTime = now;
-  requestAnimationFrame(tick);
-}
-requestAnimationFrame(tick);
-
-/* ----------------------------- Upgrade UI Rendering ----------------------------- */
-const openUp = document.getElementById('openUp');
-const upgradeModal = document.getElementById('upgrade');
-const closeUp = document.getElementById('closeUp');
-const resetTreeBtn = document.getElementById('resetTree');
-const treeArea = document.querySelector('#tree-canvas');
-
-openUp.addEventListener('click', ()=> openUpgrade());
-closeUp.addEventListener('click', ()=> closeUpgrade());
-resetTreeBtn.addEventListener('click', ()=> {
-  if(confirm("هل تريد إعادة تعيين كل التحديثات؟ سيتم فقدان كل التطويرات.")){
-    for(const k in state.upgrades) state.upgrades[k] = 0;
-    state.money = 0; state.score = 0;
-    saveState();
-    applyAllUpgrades();
-    updateHUD();
-    renderTree();
-  }
-});
-
-document.getElementById('pauseBtn').addEventListener('click', ()=>{
-  game.paused = !game.paused;
-  if(!game.paused) { upgradeModal.style.display='none'; }
-});
-
-function openUpgrade(){
-  upgradeModal.style.display='flex';
-  renderTree();
-  game.paused = true;
-}
-function closeUpgrade(){
-  upgradeModal.style.display='none';
-  game.paused = false;
-}
-
-/* build a complex tree layout */
-const treeLayout = [
-  // row wise: each node with x,y position in virtual grid
-  {id:'damage', x:0, y:0},
-  {id:'fireRate', x:-200, y:120},
-  {id:'missiles', x:200, y:120},
-  {id:'missileSpeed', x:200, y:260},
-  {id:'explosion', x:360, y:420},
-  {id:'pierce', x:-120, y:260},
-  {id:'crit', x:-320, y:260},
-  {id:'maxHP', x:-80, y:420},
-  {id:'regen', x:-80, y:560},
-  {id:'rockDensity', x:180, y:420},
-  {id:'rockSpeed', x:280, y:560},
-  {id:'moneyBoost', x:80, y:560},
-  {id:'passiveIncome', x:80, y:720},
-  {id:'homing', x:420, y:560},
-  {id:'split', x:520, y:720},
-  {id:'shield', x:-280, y:720},
-  {id:'multihit', x:420, y:860},
-  {id:'speedBoost', x:-200, y:860},
-  {id:'missileCountBoost', x:560, y:920},
-];
-
-function isUnlocked(id){
-  // node unlocked if all deps have level >0 OR it's damage root
-  const def = upgradesDef[id];
-  if(!def) return false;
-  if(state.upgrades[id] && state.upgrades[id] > 0) return true; // purchased any
-  if(def.deps.length === 0) return true; // base available
-  // unlocked if any of deps has level>0 (or require all? we'll require at least one dep)
-  return def.deps.some(dep => (state.upgrades[dep] && state.upgrades[dep] > 0));
-}
-
-function renderTree(){
-  // clear
-  treeArea.innerHTML = '';
-  // create svg to draw connections
-  const svgNS = "http://www.w3.org/2000/svg";
-  const svg = document.createElementNS(svgNS, 'svg');
-  svg.setAttribute('width','100%'); svg.setAttribute('height','100%'); svg.style.position='absolute'; svg.style.left='0'; svg.style.top='0'; svg.style.zIndex = 1;
-  treeArea.appendChild(svg);
-
-  // create container for nodes
-  const container = document.createElement('div');
-  container.style.position = 'relative'; container.style.width = '1100px'; container.style.height = '1100px'; container.style.margin = '10px auto'; container.style.zIndex = 10;
-  treeArea.appendChild(container);
-
-  // draw nodes
-  const positions = {};
-  for(const node of treeLayout){
-    const el = document.createElement('div');
-    el.className = 'node panel-card';
-    el.style.position = 'absolute';
-    el.style.left = (node.x + 350) + 'px';
-    el.style.top = (node.y + 40) + 'px';
-    positions[node.id] = {x: node.x+350 + 80, y: node.y + 40 + 28}; // center point
-
-    const def = upgradesDef[node.id];
-    const lvl = state.upgrades[node.id] || 0;
-    el.innerHTML = `<div class="n-title">${def ? def.name : node.id} <span style="font-weight:600; font-size:12px; color:rgba(180,240,255,0.9)">Lv.${lvl}/${def.max}</span></div>
-                    <div class="n-desc">${def.desc}</div>
-                    <div class="n-cost">${def.cost}💠</div>`;
-    // class: locked/unlocked/buyable
-    if(lvl >= def.max) el.classList.add('locked');
-    else if(isUnlocked(node.id) && state.money >= def.cost) el.classList.add('buyable');
-    else if(isUnlocked(node.id)) el.classList.add('unlocked');
-    else el.classList.add('locked');
-
-    el.addEventListener('mouseenter', (ev)=>{
-      const tt = document.getElementById('tooltip');
-      tt.style.left = (ev.clientX + 12) + 'px'; tt.style.top = (ev.clientY + 12) + 'px';
-      tt.style.display = 'block';
-      tt.innerHTML = `<strong>${def.name}</strong><br>${def.desc}<br>تكلفة: ${def.cost} • الحد الأقصى: ${def.max}<br>المستوى الحالي: ${lvl}`;
+    stars.push({
+      x: Math.random()*window.innerWidth,
+      y: Math.random()*window.innerHeight,
+      size: Math.random()*2 + 0.6,
+      phase: Math.random()*Math.PI*2,
+      speed: 0.2 + Math.random()*0.6,
+      vy: (Math.random()*0.6 - 0.3)
     });
-    el.addEventListener('mousemove', (ev)=>{ const tt = document.getElementById('tooltip'); tt.style.left = (ev.clientX + 12) + 'px'; tt.style.top = (ev.clientY + 12) + 'px';});
-    el.addEventListener('mouseleave', ()=>{ const tt = document.getElementById('tooltip'); tt.style.display='none';});
-    el.addEventListener('click', ()=> buyUpgrade(node.id));
-
-    container.appendChild(el);
-  }
-
-  // draw connections between nodes (use dependencies)
-  for(const node of treeLayout){
-    const def = upgradesDef[node.id];
-    if(!def) continue;
-    for(const dep of def.deps){
-      if(!positions[dep] || !positions[node.id]) continue;
-      const p1 = positions[dep], p2 = positions[node.id];
-      const path = document.createElementNS(svgNS, 'path');
-      const midx = (p1.x + p2.x)/2;
-      const midy = (p1.y + p2.y)/2;
-      const d = `M ${p1.x} ${p1.y} C ${midx} ${p1.y-60}, ${midx} ${p2.y+60}, ${p2.x} ${p2.y}`;
-      path.setAttribute('d', d);
-      const color = (state.upgrades[dep] && state.upgrades[dep] > 0) ? 'rgba(0,240,255,0.9)' : 'rgba(255,255,255,0.08)';
-      path.setAttribute('stroke', color);
-      path.setAttribute('stroke-width', '3');
-      path.setAttribute('fill', 'none');
-      svg.appendChild(path);
-    }
   }
 }
+initStars();
+window.addEventListener('resize', initStars);
 
-/* ----------------------------- Buying Upgrades ----------------------------- */
-function buyUpgrade(id){
-  const def = upgradesDef[id];
-  if(!def) return;
-  const cur = state.upgrades[id] || 0;
-  if(cur >= def.max) return alert('وصلت الحد الأقصى لهذا التحديث.');
-  if(!isUnlocked(id)) return alert('لم تُفتح هذه العقدة بعد.');
-  if(state.money < def.cost) return alert('ما عندك فلوس كافية.');
-  // buy
-  state.money -= def.cost;
-  state.upgrades[id] = cur + 1;
-  // scale cost (increase next cost)
-  upgradesDef[id].cost = Math.ceil(def.cost * 1.35);
-  applyAllUpgrades();
-  saveState();
-  renderTree();
-  updateHUD();
-  beep(980,0.04,0.05);
+let lastTime = 0;
+function drawStars(t){
+  const dt = (t - lastTime) || 16;
+  lastTime = t;
+
+  sctx.clearRect(0,0,starCanvas.width,starCanvas.height);
+  // subtle gradient overlay to increase depth
+  // draw stars
+  for(const st of stars){
+    // vertical floating motion
+    st.phase += dt*0.001 * st.speed;
+    st.y += Math.sin(st.phase)*0.15 * st.speed;
+    // wrap
+    if(st.y < -10) st.y = window.innerHeight + 10;
+    if(st.y > window.innerHeight + 10) st.y = -10;
+
+    const a = 0.45 + 0.55 * (0.5 + 0.5*Math.sin(st.phase*1.3));
+    sctx.beginPath();
+    const g = sctx.createRadialGradient(st.x, st.y, 0, st.x, st.y, st.size*6);
+    g.addColorStop(0, `rgba(110,255,170,${0.8*a})`);
+    g.addColorStop(0.3, `rgba(110,255,170,${0.18*a})`);
+    g.addColorStop(1, `rgba(110,255,170,0)`);
+    sctx.fillStyle = g;
+    sctx.arc(st.x, st.y, st.size*3.8, 0, Math.PI*2);
+    sctx.fill();
+  }
+
+  requestAnimationFrame(drawStars);
+}
+requestAnimationFrame(drawStars);
+
+/* =========================
+   3) Copy interaction + shapes animation
+   ========================= */
+const ipBox = document.getElementById('ipBox');
+const ipText = document.getElementById('ipText');
+const copyLabel = document.getElementById('copyLabel');
+const confettiLayer = document.getElementById('confettiLayer');
+
+function showCopyFeedback(){
+  // show label
+  copyLabel.style.opacity = 1;
+  copyLabel.style.transform = 'translateY(0)';
+  // animate shapes (star, triangle, circle)
+  spawnShape('star');
+  spawnShape('triangle');
+  spawnShape('circle');
+  // hide label after short time
+  setTimeout(()=> {
+    copyLabel.style.opacity = 0;
+    copyLabel.style.transform = 'translateY(-6px)';
+  }, 1400);
 }
 
-/* ----------------------------- Helpers ----------------------------- */
-document.addEventListener('mousemove', ()=>{ const tt = document.getElementById('tooltip'); if(tt.style.display==='block'){}});
-treeArea.addEventListener('wheel', (e)=> {
-  // scroll tree
-  e.preventDefault();
-  treeArea.scrollLeft += e.deltaY;
+function spawnShape(type){
+  // create element and animate with CSS + JS transforms
+  const el = document.createElement('div');
+  el.className = 'fx-shape';
+  // position inside center of ipBox
+  const rect = ipBox.getBoundingClientRect();
+  // random offset within box for variety
+  const rx = rect.left + rect.width*0.5 + (Math.random()*160 - 80);
+  const ry = rect.top + rect.height*0.5 + (Math.random()*70 - 35);
+
+  el.style.left = rx + 'px';
+  el.style.top = ry + 'px';
+
+  if(type === 'circle'){
+    el.classList.add('fx-circle');
+  } else if(type === 'triangle'){
+    el.classList.add('fx-triangle');
+    // style color
+    el.style.borderBottomColor = '#ffd24d';
+  } else { // star
+    el.classList.add('fx-star');
+    // insert tiny SVG star
+    el.innerHTML = `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M12 2.5l2.4 4.86L20 8.1l-4 3.9.94 5.5L12 15.9 7.06 17.6 8 12.1 4 8.2l5.6-.74L12 2.5z" fill="#fff6a8" />
+    </svg>`;
+  }
+
+  // initial tiny scale & opacity
+  el.style.transform = 'translate(-50%,-50%) scale(.2) rotate(0deg)';
+  el.style.opacity = '0';
+  confettiLayer.appendChild(el);
+
+  // animate: pop outward + fade
+  const dur = 700 + Math.random()*300;
+  const angle = (Math.random() * Math.PI*2);
+  const dist = 60 + Math.random()*80;
+  const tx = Math.cos(angle) * dist;
+  const ty = Math.sin(angle) * dist - (20 + Math.random()*30);
+
+  requestAnimationFrame(()=>{
+    el.style.transition = `transform ${dur}ms cubic-bezier(.2,.9,.2,1), opacity ${dur}ms ease`;
+    el.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(1.05) rotate(${Math.random()*360}deg)`;
+    el.style.opacity = '1';
+  });
+
+  setTimeout(()=>{
+    // fade out
+    el.style.transition = `transform 420ms ease, opacity 420ms ease`;
+    el.style.transform = `translate(calc(-50% + ${tx*1.5}px), calc(-50% + ${ty*1.5}px)) scale(.2) rotate(${Math.random()*720}deg)`;
+    el.style.opacity = '0';
+  }, dur - 140);
+
+  // cleanup
+  setTimeout(()=> el.remove(), dur + 600);
+}
+
+/* copy behavior */
+ipBox.addEventListener('click', async ()=>{
+  const text = ipText.textContent.trim();
+  try{
+    await navigator.clipboard.writeText(text);
+    // ARIA change
+    ipBox.setAttribute('aria-pressed','true');
+    showCopyFeedback();
+    // temporarily change ip text to "Copy done" for accessibility? we keep ip and show label only
+    // Show quick micro-feedback by briefly flashing outline
+    ipBox.style.boxShadow = '0 10px 40px rgba(22,163,74,0.14)';
+    setTimeout(()=> ipBox.style.boxShadow = '', 600);
+  }catch(e){
+    alert('Copy failed — please copy manually: ' + text);
+  }
 });
-document.addEventListener('visibilitychange', ()=> { if(document.hidden) saveState(); });
 
-/* ----------------------------- Start with some mechanics tuned ----------------------------- */
-player.health = player.maxHealth;
-updateHUD();
-saveState();
+/* =========================
+   4) Social buttons open links (given)
+   ========================= */
+document.getElementById('discordBtn').addEventListener('click', ()=> {
+  window.open('https://discord.gg/dirtmc','_blank','noopener');
+});
+document.getElementById('tiktokBtn').addEventListener('click', ()=> {
+  window.open('https://vt.tiktok.com/ZSaGx7Yuo/','_blank','noopener');
+});
 
-/* keyboard: quick open upgrade with U */
-addEventListener('keydown', e=>{ if(e.key.toLowerCase() === 'u') openUpgrade(); });
+/* =========================
+   5) Accessibility: keyboard copy via Enter/Space
+   ========================= */
+ipBox.tabIndex = 0;
+ipBox.addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter' || e.key === ' '){
+    e.preventDefault();
+    ipBox.click();
+  }
+});
 
+/* resize handlers (recompute stars) */
+window.addEventListener('resize', ()=>{
+  initStars();
+  resizeStarCanvas();
+});
+
+/* =========================
+   That's it — everything self-contained.
+   Notes:
+   - Put your background image file next to this index.html named 'background.png'
+     OR change the CSS variable --bg-img at top of this file to match your filename/path.
+   - PNG allowed (supports transparency); JPG also fine. Use a large resolution image.
+   - If you want the IP to be different, edit the text content of #ipText.
+*/
 </script>
 </body>
 </html>
