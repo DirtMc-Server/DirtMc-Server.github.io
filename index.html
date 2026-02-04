@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>DirtMC — Copy IP</title>
 
-<!-- Use a clean display font for legibility on mobile; replace if you want pixel font -->
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap" rel="stylesheet">
 
 <style>
@@ -13,373 +12,195 @@
   --accent-1: #16a34a;
   --accent-2: #6ee7b7;
   --bg-dark: #06120b;
-  --glass: rgba(255,255,255,0.04);
   --text: #e9fff0;
-  /* Change background image path here if you name file differently */
-  --bg-img: url('background.png'); /* <- put your image file (png/jpg) in same folder */
+  --bg-img: url('background.png');
 }
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial;background:var(--bg-dark);color:var(--text);-webkit-font-smoothing:antialiased;}
-a{color:inherit;text-decoration:none}
+html,body{height:100%;margin:0;font-family:Inter,system-ui;background:var(--bg-dark);color:var(--text);overflow:hidden}
+a{text-decoration:none;color:inherit}
 
-/* background image layer (you put your image file next to index.html) */
+/* background */
 .bg-image{
-  position:fixed; inset:0; z-index:0; background-color:#000;
-  background-image: var(--bg-img);
-  background-size: cover;
-  background-position: center center;
-  filter: brightness(.42);
+  position:fixed; inset:0; z-index:0;
+  background:var(--bg-img) center/cover no-repeat;
+  filter:brightness(.42);
 }
 
-/* animated star dots canvas sits above bg-image */
-#starCanvas{ position:fixed; inset:0; z-index:1; pointer-events:none; }
+/* stars */
+#starCanvas{position:fixed; inset:0; z-index:1; pointer-events:none}
 
-/* main UI centered */
-.container{ position:relative; z-index:5; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; }
-
-/* card (center big square) */
-.card-wrap{
-  width:min(920px,96%); max-width:980px;
-  display:flex; flex-direction:column; align-items:center; gap:18px;
-  backdrop-filter: blur(6px);
-  -webkit-backdrop-filter: blur(6px);
-}
-
-/* Title above square */
-.site-title{
-  font-weight:900; font-size:28px; letter-spacing:1px;
-  color:var(--accent-2);
-  text-shadow: 0 8px 20px rgba(6,255,140,0.06);
-  transform: translateY(-6px);
-}
-
-/* big center square */
-.centerBox{
-  width:100%; max-width:760px;
-  background: linear-gradient(180deg, rgba(0,0,0,0.45), rgba(255,255,255,0.02));
-  border-radius:14px;
-  padding:28px;
-  display:flex; flex-direction:column; align-items:center; gap:18px;
-  box-shadow: 0 30px 90px rgba(0,0,0,0.6);
-  border: 1px solid rgba(255,255,255,0.04);
-}
-
-/* the big IP text area */
-.ipBox{
-  width:100%; display:flex; align-items:center; justify-content:center; gap:14px;
-  padding:22px; border-radius:10px;
-  background: linear-gradient(90deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));
-  border: 2px solid rgba(255,255,255,0.03);
-  cursor:pointer;
-  transition: transform .12s ease, box-shadow .12s ease;
-}
-.ipBox:active{ transform: translateY(2px); }
-/* show pointer on mobile as well */
-.ipText{
-  font-family: Inter, system-ui, sans-serif;
+/* 🎮 GAME BUTTON */
+.game-btn{
+  position:fixed;
+  top:16px;
+  right:16px;
+  z-index:10;
+  padding:12px 20px;
   font-weight:900;
+  font-size:15px;
+  border-radius:14px;
+  background:linear-gradient(135deg,#22c55e,#86efac);
+  color:#022c1a;
+  box-shadow:0 12px 40px rgba(34,197,94,.35);
+  transition:.2s ease;
+}
+.game-btn:hover{transform:scale(1.06)}
+.game-btn:active{transform:scale(.96)}
+
+/* main */
+.container{
+  position:relative; z-index:5;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+.card-wrap{
+  width:min(920px,96%);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:18px;
+}
+.site-title{
+  font-weight:900;
+  font-size:30px;
+  color:var(--accent-2);
+  text-shadow:0 0 20px rgba(110,231,183,.4);
+}
+
+/* center box */
+.centerBox{
+  width:100%;
+  max-width:760px;
+  padding:28px;
+  border-radius:16px;
+  background:rgba(0,0,0,.55);
+  backdrop-filter:blur(8px);
+  box-shadow:0 30px 90px rgba(0,0,0,.6);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:18px;
+}
+
+/* ip */
+.ipBox{
+  width:100%;
+  padding:22px;
+  border-radius:12px;
+  background:rgba(255,255,255,.04);
+  border:2px solid rgba(255,255,255,.06);
+  cursor:pointer;
+}
+.ipText{
   font-size:26px;
-  letter-spacing:0.8px;
-  color: var(--text);
+  font-weight:900;
   text-align:center;
-  user-select: none;
 }
 
-/* success label */
+/* copy label */
 .copyLabel{
-  font-size:13px; color:var(--accent-2); font-weight:800; opacity:0; transform:translateY(-6px); transition: all .28s ease;
-  pointer-events:none;
+  font-size:13px;
+  font-weight:800;
+  color:var(--accent-2);
+  opacity:0;
+  transition:.3s;
 }
 
-/* confetti shapes container (absolute overlay inside centerBox) */
-.confetti-layer{ position:relative; width:100%; height:0; pointer-events:none; }
-
-/* buttons row */
-.btnRow{ display:flex; gap:12px; justify-content:center; flex-wrap:wrap; margin-top:2px; }
+/* buttons */
+.btnRow{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  justify-content:center;
+}
 .btn{
-  padding:10px 16px; border-radius:10px; cursor:pointer; border:0; font-weight:800;
-  color:#021205; background: linear-gradient(90deg,var(--accent-1),var(--accent-2));
-  box-shadow: 0 12px 40px rgba(22,163,74,0.08);
-  transition: transform .12s ease, box-shadow .12s ease;
+  padding:12px 18px;
+  border-radius:12px;
+  border:0;
+  font-weight:800;
+  cursor:pointer;
+  transition:.2s;
 }
-.btn:active{ transform:translateY(2px); }
-.btnDiscord{ background: linear-gradient(90deg,#0b63d6,#7ab8ff); color:white; box-shadow:0 12px 40px rgba(122,184,255,0.08) }
-.btnTiktok{ background: linear-gradient(90deg,#b20059,#ff6fb5); color:white; box-shadow:0 12px 40px rgba(255,111,181,0.08) }
-
-/* little feedback star/triangle/circle styles (created by JS as inline elements) */
-.fx-shape{
-  position:absolute; left:50%; top:50%;
-  width:22px; height:22px; transform:translate(-50%,-50%) scale(0.2);
-  opacity:0; pointer-events:none; z-index:9;
-  filter: drop-shadow(0 8px 12px rgba(0,0,0,0.45));
+.btnDiscord{
+  background:linear-gradient(135deg,#5865F2,#9aa5ff);
+  color:white;
 }
-
-/* circle */
-.fx-circle{ border-radius:50%; background: radial-gradient(circle, #fff 0%, rgba(255,255,255,0.9) 15%, rgba(54,255,176,0.9) 80%); }
-/* triangle via CSS border */
-.fx-triangle{
-  width:0; height:0; border-left:12px solid transparent; border-right:12px solid transparent;
-  border-bottom:20px solid rgba(255,255,255,0.95);
-  background:transparent;
-  transform-origin:center center;
+.btnTiktok{
+  background:linear-gradient(135deg,#ff0050,#00f2ea);
+  color:white;
 }
-/* star (SVG inserted) */
-.fx-star svg{ width:24px; height:24px; }
+.btn:hover{transform:scale(1.05)}
 
-/* small instruction under ip */
-.ipHint{ font-size:12px; color:rgba(233,255,240,0.7); margin-top:4px; }
-
-/* responsive tweaks */
 @media(max-width:640px){
-  .ipText{ font-size:20px }
-  .site-title{ font-size:20px }
-  .centerBox{ padding:18px }
-  .btn{ padding:9px 12px; font-size:14px }
+  .ipText{font-size:20px}
+  .site-title{font-size:22px}
+  .game-btn{font-size:14px;padding:10px 16px}
 }
 </style>
 </head>
+
 <body>
 
-<!-- background image layer: put your image file in same folder and name it background.png (or change --bg-img variable at top) -->
-<div class="bg-image" aria-hidden="true"></div>
+<div class="bg-image"></div>
+<canvas id="starCanvas"></canvas>
 
-<!-- star dots canvas -->
-<canvas id="starCanvas" aria-hidden="true"></canvas>
+<!-- 🎮 GAME BUTTON -->
+<a class="game-btn" href="https://dirtmc-server.github.io/game.github.io" target="_blank">
+  🎮 DirtMc Game
+</a>
 
-<div class="container" role="main">
-  <div class="card-wrap" role="article" aria-label="DirtMC main">
-    <div class="site-title" id="siteTitle">DirtMc</div>
+<div class="container">
+  <div class="card-wrap">
+    <div class="site-title">DirtMc</div>
 
-    <div class="centerBox" role="region" aria-label="IP box region" >
-      <div class="confetti-layer" id="confettiLayer" aria-hidden="true"></div>
-
-      <!-- clickable IP box -->
-      <div class="ipBox" id="ipBox" role="button" aria-pressed="false" aria-label="Copy server ip">
+    <div class="centerBox">
+      <div class="ipBox" id="ipBox">
         <div class="ipText" id="ipText">DirtMc.pro:21411</div>
       </div>
 
-      <!-- temporary copy label -->
-      <div class="copyLabel" id="copyLabel" aria-live="polite">Copy done</div>
+      <div class="copyLabel" id="copyLabel">Copy done ⭐</div>
 
-      <div class="ipHint">Tap the box to copy the IP</div>
-
-      <!-- buttons -->
-      <div class="btnRow" style="margin-top:12px;">
-        <button class="btn btnDiscord" id="discordBtn" aria-label="Open Discord">Discord</button>
-        <button class="btn btnTiktok" id="tiktokBtn" aria-label="Open TikTok">TikTok</button>
+      <div class="btnRow">
+        <button class="btn btnDiscord" id="discordBtn">Discord</button>
+        <button class="btn btnTiktok" id="tiktokBtn">TikTok</button>
       </div>
     </div>
   </div>
 </div>
 
 <script>
-/* =========================
-   1) Where to put your background image
-   =========================
-   - Place the image file in the same folder as this index.html
-   - Name it `background.png` (or `background.jpg`). Then the CSS variable at top (--bg-img) will point to it.
-   - PNG is fine (supports transparency). JPG/WEBP also fine. Use large resolution (e.g. 1920x1080) for best look.
-   - If you named it different, edit :root --bg-img value in the <style> (top) to your filename.
-*/
-
-/* =========================
-   2) Star dots canvas (glowing floating dots)
-   ========================= */
-const starCanvas = document.getElementById('starCanvas');
-const sctx = starCanvas.getContext('2d');
-let DPR = Math.max(1, window.devicePixelRatio || 1);
-
-function resizeStarCanvas(){
-  DPR = Math.max(1, window.devicePixelRatio || 1);
-  starCanvas.width = Math.floor(window.innerWidth * DPR);
-  starCanvas.height = Math.floor(window.innerHeight * DPR);
-  starCanvas.style.width = window.innerWidth + 'px';
-  starCanvas.style.height = window.innerHeight + 'px';
-  sctx.setTransform(DPR,0,0,DPR,0,0);
-}
-window.addEventListener('resize', resizeStarCanvas);
-resizeStarCanvas();
-
-const stars = [];
-function initStars(){
-  stars.length = 0;
-  const count = Math.max(50, Math.floor((window.innerWidth * window.innerHeight) / 45000));
-  for(let i=0;i<count;i++){
-    stars.push({
-      x: Math.random()*window.innerWidth,
-      y: Math.random()*window.innerHeight,
-      size: Math.random()*2 + 0.6,
-      phase: Math.random()*Math.PI*2,
-      speed: 0.2 + Math.random()*0.6,
-      vy: (Math.random()*0.6 - 0.3)
-    });
-  }
-}
-initStars();
-window.addEventListener('resize', initStars);
-
-let lastTime = 0;
-function drawStars(t){
-  const dt = (t - lastTime) || 16;
-  lastTime = t;
-
-  sctx.clearRect(0,0,starCanvas.width,starCanvas.height);
-  // subtle gradient overlay to increase depth
-  // draw stars
-  for(const st of stars){
-    // vertical floating motion
-    st.phase += dt*0.001 * st.speed;
-    st.y += Math.sin(st.phase)*0.15 * st.speed;
-    // wrap
-    if(st.y < -10) st.y = window.innerHeight + 10;
-    if(st.y > window.innerHeight + 10) st.y = -10;
-
-    const a = 0.45 + 0.55 * (0.5 + 0.5*Math.sin(st.phase*1.3));
-    sctx.beginPath();
-    const g = sctx.createRadialGradient(st.x, st.y, 0, st.x, st.y, st.size*6);
-    g.addColorStop(0, `rgba(110,255,170,${0.8*a})`);
-    g.addColorStop(0.3, `rgba(110,255,170,${0.18*a})`);
-    g.addColorStop(1, `rgba(110,255,170,0)`);
-    sctx.fillStyle = g;
-    sctx.arc(st.x, st.y, st.size*3.8, 0, Math.PI*2);
-    sctx.fill();
-  }
-
-  requestAnimationFrame(drawStars);
-}
-requestAnimationFrame(drawStars);
-
-/* =========================
-   3) Copy interaction + shapes animation
-   ========================= */
-const ipBox = document.getElementById('ipBox');
-const ipText = document.getElementById('ipText');
-const copyLabel = document.getElementById('copyLabel');
-const confettiLayer = document.getElementById('confettiLayer');
-
-function showCopyFeedback(){
-  // show label
-  copyLabel.style.opacity = 1;
-  copyLabel.style.transform = 'translateY(0)';
-  // animate shapes (star, triangle, circle)
-  spawnShape('star');
-  spawnShape('triangle');
-  spawnShape('circle');
-  // hide label after short time
-  setTimeout(()=> {
-    copyLabel.style.opacity = 0;
-    copyLabel.style.transform = 'translateY(-6px)';
-  }, 1400);
-}
-
-function spawnShape(type){
-  // create element and animate with CSS + JS transforms
-  const el = document.createElement('div');
-  el.className = 'fx-shape';
-  // position inside center of ipBox
-  const rect = ipBox.getBoundingClientRect();
-  // random offset within box for variety
-  const rx = rect.left + rect.width*0.5 + (Math.random()*160 - 80);
-  const ry = rect.top + rect.height*0.5 + (Math.random()*70 - 35);
-
-  el.style.left = rx + 'px';
-  el.style.top = ry + 'px';
-
-  if(type === 'circle'){
-    el.classList.add('fx-circle');
-  } else if(type === 'triangle'){
-    el.classList.add('fx-triangle');
-    // style color
-    el.style.borderBottomColor = '#ffd24d';
-  } else { // star
-    el.classList.add('fx-star');
-    // insert tiny SVG star
-    el.innerHTML = `<svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M12 2.5l2.4 4.86L20 8.1l-4 3.9.94 5.5L12 15.9 7.06 17.6 8 12.1 4 8.2l5.6-.74L12 2.5z" fill="#fff6a8" />
-    </svg>`;
-  }
-
-  // initial tiny scale & opacity
-  el.style.transform = 'translate(-50%,-50%) scale(.2) rotate(0deg)';
-  el.style.opacity = '0';
-  confettiLayer.appendChild(el);
-
-  // animate: pop outward + fade
-  const dur = 700 + Math.random()*300;
-  const angle = (Math.random() * Math.PI*2);
-  const dist = 60 + Math.random()*80;
-  const tx = Math.cos(angle) * dist;
-  const ty = Math.sin(angle) * dist - (20 + Math.random()*30);
-
-  requestAnimationFrame(()=>{
-    el.style.transition = `transform ${dur}ms cubic-bezier(.2,.9,.2,1), opacity ${dur}ms ease`;
-    el.style.transform = `translate(calc(-50% + ${tx}px), calc(-50% + ${ty}px)) scale(1.05) rotate(${Math.random()*360}deg)`;
-    el.style.opacity = '1';
+/* stars */
+const c=document.getElementById("starCanvas"),x=c.getContext("2d");
+function r(){c.width=innerWidth;c.height=innerHeight}
+r();addEventListener("resize",r);
+let s=[...Array(70)].map(()=>({x:Math.random()*innerWidth,y:Math.random()*innerHeight,r:Math.random()*2+1}));
+(function a(){
+  x.clearRect(0,0,c.width,c.height);
+  s.forEach(o=>{
+    o.y-=.15;if(o.y<0)o.y=innerHeight;
+    x.beginPath();
+    x.fillStyle="rgba(110,255,170,.8)";
+    x.arc(o.x,o.y,o.r,0,7);x.fill();
   });
+  requestAnimationFrame(a);
+})();
 
-  setTimeout(()=>{
-    // fade out
-    el.style.transition = `transform 420ms ease, opacity 420ms ease`;
-    el.style.transform = `translate(calc(-50% + ${tx*1.5}px), calc(-50% + ${ty*1.5}px)) scale(.2) rotate(${Math.random()*720}deg)`;
-    el.style.opacity = '0';
-  }, dur - 140);
+/* copy */
+const ipBox=document.getElementById("ipBox");
+const copyLabel=document.getElementById("copyLabel");
+ipBox.onclick=async()=>{
+  await navigator.clipboard.writeText("DirtMc.pro:21411");
+  copyLabel.style.opacity=1;
+  setTimeout(()=>copyLabel.style.opacity=0,1200);
+};
 
-  // cleanup
-  setTimeout(()=> el.remove(), dur + 600);
-}
-
-/* copy behavior */
-ipBox.addEventListener('click', async ()=>{
-  const text = ipText.textContent.trim();
-  try{
-    await navigator.clipboard.writeText(text);
-    // ARIA change
-    ipBox.setAttribute('aria-pressed','true');
-    showCopyFeedback();
-    // temporarily change ip text to "Copy done" for accessibility? we keep ip and show label only
-    // Show quick micro-feedback by briefly flashing outline
-    ipBox.style.boxShadow = '0 10px 40px rgba(22,163,74,0.14)';
-    setTimeout(()=> ipBox.style.boxShadow = '', 600);
-  }catch(e){
-    alert('Copy failed — please copy manually: ' + text);
-  }
-});
-
-/* =========================
-   4) Social buttons open links (given)
-   ========================= */
-document.getElementById('discordBtn').addEventListener('click', ()=> {
-  window.open('https://discord.gg/dirtmc','_blank','noopener');
-});
-document.getElementById('tiktokBtn').addEventListener('click', ()=> {
-  window.open('https://vt.tiktok.com/ZSaGx7Yuo/','_blank','noopener');
-});
-
-/* =========================
-   5) Accessibility: keyboard copy via Enter/Space
-   ========================= */
-ipBox.tabIndex = 0;
-ipBox.addEventListener('keydown', (e)=>{
-  if(e.key === 'Enter' || e.key === ' '){
-    e.preventDefault();
-    ipBox.click();
-  }
-});
-
-/* resize handlers (recompute stars) */
-window.addEventListener('resize', ()=>{
-  initStars();
-  resizeStarCanvas();
-});
-
-/* =========================
-   That's it — everything self-contained.
-   Notes:
-   - Put your background image file next to this index.html named 'background.png'
-     OR change the CSS variable --bg-img at top of this file to match your filename/path.
-   - PNG allowed (supports transparency); JPG also fine. Use a large resolution image.
-   - If you want the IP to be different, edit the text content of #ipText.
-*/
+/* links */
+document.getElementById("discordBtn").onclick=()=>open("https://discord.gg/dirtmc","_blank");
+document.getElementById("tiktokBtn").onclick=()=>open("https://vt.tiktok.com/ZSaGx7Yuo/","_blank");
 </script>
+
 </body>
 </html>
